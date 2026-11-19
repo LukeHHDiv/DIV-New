@@ -92,6 +92,7 @@ const evLag=t=>{const m=S.meta[t]||{};if(!m.ev)return null;const L=[];S.tx.filte
 const annOf=(t,k)=>{const nx=((S.meta[t]||{}).ev||{}).nx;if(!nx)return null;const lg=evLag(t),pay=nx.pay||(lg!=null?addD(nx.ex,lg):'');return pay&&ym(pay)==k?{d:pay,ex:nx.ex}:null};
 const gw=()=>{try{return localStorage.getItem('divworker')||''}catch(e){return ''}};
 let WR={};
+function saveW(){const v=$('#wu').value.trim().replace(/[\/]+$/,'');try{localStorage.setItem('divworker',v);$('#wu').value=v;$('#wst').textContent=v?'Adresse gespeichert.':'Adresse gelöscht.'}catch(e){$('#wst').textContent='Speichern nicht möglich (privater Modus?).'}}
 async function syncEv(){const u=gw(),st=$('#wst');if(!u){st.textContent='Bitte zuerst die Worker-Adresse speichern.';return}
  const H=holdings().filter(h=>h.q>0.0001);WR={};let ok=0,i=0;
  for(const h of H){i++;st.textContent=`Rufe ab … ${i}/${H.length}`;const isin=(S.tx.find(x=>x.ticker==h.t&&x.isin)||{}).isin;if(!isin){WR[h.t]='keine ISIN';continue}
@@ -239,7 +240,7 @@ async function runChk(){if(busy)return;const K=gk(),p=K.p||'fmp',key=$('#kk').va
 function datachk(){const K=gk(),p=K.p||'fmp',H=holdings().filter(h=>h.q>0.0001),b=(k,l)=>`<button class="btn${p==k?' pri':''}" onclick="setP('${k}')">${l}</button>`;
  $('#m').innerHTML=`<div class="card"><b>Termine automatisch abrufen</b><p class="mu">Holt Ex-Tage und Dividendenverlauf über deinen eigenen Worker (Anleitung im Chat). Danach nutzen Kalender und Prognose echte Termine.</p>
  <input id="wu" value="${esc(gw())}" placeholder="https://dein-worker.workers.dev" style="width:100%;padding:8px;border-radius:6px;border:1px solid var(--ln);background:var(--bg);color:var(--tx)">
- <p><button class="btn" onclick="try{localStorage.setItem('divworker',$('#wu').value.trim().replace(/\/$/,''))}catch(e){};$('#wst').textContent='Adresse gespeichert.'">Speichern</button> <button class="btn pri" onclick="syncEv()">Termine abrufen</button></p><div id="wst" class="gr"></div><table id="wt"></table></div>
+ <p><button class="btn" onclick="saveW()">Speichern</button> <button class="btn pri" onclick="syncEv()">Termine abrufen</button></p><div id="wst" class="gr"></div><table id="wt"></table></div>
  `+`<div class="card"><b>Datencheck</b><p class="mu">Prüft, ob dein Anbieter Dividenden für deine aktuellen Titel liefert. Der Key bleibt nur auf diesem Gerät und ist nicht im Export enthalten.</p>
  <div class="ctl seg"><span>Anbieter:</span>${b('fmp','Financial Modeling Prep')}${b('td','Twelve Data')}</div>
  <label class="mu">API-Key</label><input id="kk" type="password" autocomplete="off" value="${esc(K[p]||'')}" placeholder="Key hier einfügen" style="width:100%;padding:8px;border-radius:6px;border:1px solid var(--ln);background:var(--bg);color:var(--tx)">
