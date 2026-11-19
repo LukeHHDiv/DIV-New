@@ -86,6 +86,19 @@ function forecast(n=12){const now=new Date(),out=[],H=holdings().filter(h=>h.q>0
    for(let i=1;i<=n;i++){const k=addM(now,i);if(mo.includes(+k.slice(5)))out.push({ym:k,t:h.t,a:h.q*m.dps/f})}}
   else for(let i=1;i<=n;i++){const k=addM(now,i),k0=addM(now,(i-1)%12+1-12);const a=past.filter(t=>ym(t.date)==k0).reduce((s,t)=>s+t.amount,0);if(a)out.push({ym:k,t:h.t,a})}});
  return out}
+const addD=(s,n)=>{const d=new Date(s+'T12:00:00');d.setDate(d.getDate()+n);return d.toISOString().slice(0,10)};
+const exMatch=(t,p)=>{const m=S.meta[t]||{};if(!m.ev)return '';let b='';m.ev.ex.forEach(([d])=>{if(d<=p&&(new Date(p)-new Date(d))/864e5<=60&&d>b)b=d});return b};
+const evLag=t=>{const m=S.meta[t]||{};if(!m.ev)return null;const L=[];S.tx.filter(x=>x.type=='div'&&x.ticker==t).forEach(x=>{const p=x.date.slice(0,10),e=exMatch(t,p);if(e)L.push(Math.round((new Date(p)-new Date(e))/864e5))});if(!L.length)return null;L.sort((a,b)=>a-b);return L[L.length>>1]};
+const annOf=(t,k)=>{const nx=((S.meta[t]||{}).ev||{}).nx;if(!nx)return null;const lg=evLag(t),pay=nx.pay||(lg!=null?addD(nx.ex,lg):'');return pay&&ym(pay)==k?{d:pay,ex:nx.ex}:null};
+const gw=()=>{try{return localStorage.getItem('divworker')||''}catch(e){return ''}};
+let WR={};
+async function syncEv(){const u=gw(),st=$('#wst');if(!u){st.textContent='Bitte zuerst die Worker-Adresse speichern.';return}
+ const H=holdings().filter(h=>h.q>0.0001);WR={};let ok=0,i=0;
+ for(const h of H){i++;st.textContent=`Rufe ab … ${i}/${H.length}`;const isin=(S.tx.find(x=>x.ticker==h.t&&x.isin)||{}).isin;if(!isin){WR[h.t]='keine ISIN';continue}
+  const m=S.meta[h.t]=S.meta[h.t]||{};try{const r=await fetch(`${u}/div?isin=${encodeURIComponent(isin)}${m.ysym?'&sym='+encodeURIComponent(m.ysym):''}`),j=await r.json();
+   if(j.ok){m.ev={ex:j.divs.map(d=>[d.ex,d.amt]),nx:j.next||null,ts:Date.now()};m.ysym=j.sym;ok++;WR[h.t]=`✓ ${j.sym} · ${j.divs.length} Termine${j.next?' · nächster Ex-Tag '+j.next.ex:''}`}else WR[h.t]='✗ '+(j.error||'nichts gefunden')}catch(e){WR[h.t]='✗ Worker nicht erreichbar'}}
+ save();st.textContent=`Fertig: ${ok} von ${H.length} Titeln aktualisiert.`;drawW()}
+function drawW(){const t=$('#wt');if(t)t.innerHTML=Object.entries(WR).map(([k,v])=>`<tr><td><b>${esc(nameOf(k)||k)}</b></td><td class="${v[0]=='✓'?'gr':'mu'}" style="text-align:right">${esc(v)}</td></tr>`).join('')}
 const esc=x=>String(x??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const tagsOf=t=>(S.meta[t]||{}).tags||[],allTags=()=>[...new Set(Object.values(S.meta).flatMap(m=>m.tags||[]))].sort((a,b)=>a.localeCompare(b,'de'));
 const tagCol=t=>{let h=0;for(const c of t)h=(h*31+c.charCodeAt(0))>>>0;return P[h%8]};
@@ -148,7 +161,7 @@ function dvd(){seedC();const now=new Date(),cur=addM(now,0),y=String(now.getFull
  lastDay=t=>{const d=divs.filter(x=>x.ticker==t).sort((a,b)=>a.date<b.date?-1:1).pop();return d?Math.min(+d.date.slice(8,10),28):15},
  dc=opt.dc||(opt.dc={}),sec=(k,ti,body)=>`<div class="card"><div class="row" style="cursor:pointer;margin:0" onclick="dtg('${k}')"><h3 style="margin:0">${ti}</h3><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="transition:.2s;transform:rotate(${dc[k]?180:0}deg)"><path d="M6 15l6-6 6 6"/></svg></div>${dc[k]?'':body}</div>`,
  mgroups=g=>g.map(([k,it])=>{const s=it.reduce((a,x)=>a+x.a,0);return `<div class="row" style="margin:16px 0 8px"><b>${MN[+k.slice(5)-1]} ${k.slice(0,4)}</b><b class="gr">${eur(s)}</b></div><div style="display:flex;gap:2px;height:5px;margin-bottom:6px">${it.map(x=>`<i style="flex:${Math.max(x.a,.01)};background:${tcol(x.t)};border-radius:2px"></i>`).join('')}</div>`+it.map(x=>`<div class="cr" style="cursor:pointer" onclick="opt.det='${x.t}';tab='det';render()"><div class="row" style="margin:0;align-items:flex-start"><span><span style="color:${tcol(x.t)}">■</span> <b>${esc(nameOf(x.t)||x.t)}</b><br><span class="mu" style="font-size:12px">${x.d.slice(8,10)}.${x.d.slice(5,7)}.${x.d.slice(0,4)}${x.e?' (ca.)':''}</span></span><span style="text-align:right"><b>${eur(x.a)}</b>${x.q>0?`<br><span class="mu" style="font-size:12px">${(+x.q.toFixed(2)).toLocaleString('de-DE')} × ${(x.a/x.q).toFixed(2).replace('.',',')} €</span>`:''}</span></div></div>`).join('')}).join('')||'<div class="mu" style="margin-top:10px">Keine Einträge.</div>',
- upM={};fc.forEach(x=>{if(x.ym>cur)(upM[x.ym]=upM[x.ym]||[]).push({t:x.t,a:x.a,e:1,d:x.ym+'-'+String(lastDay(x.t)).padStart(2,'0'),q:(hm[x.t]||{}).q||0})});
+ upM={};fc.forEach(x=>{if(x.ym>cur)(upM[x.ym]=upM[x.ym]||[]).push({t:x.t,a:x.a,e:annOf(x.t,x.ym)?0:1,d:(annOf(x.t,x.ym)||{}).d||x.ym+'-'+String(lastDay(x.t)).padStart(2,'0'),q:(hm[x.t]||{}).q||0})});
  const up=Object.keys(upM).sort().slice(0,3).map(k=>[k,upM[k].sort((a,b)=>b.a-a.a)]),paM={};divs.forEach(x=>{(paM[ym(x.date)]=paM[ym(x.date)]||[]).push({t:x.ticker,a:x.amount,e:0,d:x.date.slice(0,10),q:qAt(x.ticker,x.date)})});
  const pa=Object.keys(paM).sort().reverse().slice(0,3).map(k=>[k,paM[k].sort((a,b)=>a.d<b.d?1:-1)]);
  const titles=Object.keys(by).sort((a,b)=>by[b]-by[a]).map(t=>{const h=hm[t],tt=ttm.filter(x=>x.ticker==t).reduce((s,x)=>s+x.a,0);return {t,v:by[t],y:h&&h.cost>0?tt/h.cost*100:0,p:total?by[t]/total*100:0}});
@@ -224,7 +237,10 @@ async function runChk(){if(busy)return;const K=gk(),p=K.p||'fmp',key=$('#kk').va
   CK[h.t]={...res,used};drawChk(H);await new Promise(z=>setTimeout(z,250))}
  busy=false;$('#chkb').disabled=false;const ok=H.filter(h=>CK[h.t]&&CK[h.t].rows&&CK[h.t].rows.length).length;$('#chks').textContent=`${ok} von ${H.length} Titeln mit Dividendendaten.`}
 function datachk(){const K=gk(),p=K.p||'fmp',H=holdings().filter(h=>h.q>0.0001),b=(k,l)=>`<button class="btn${p==k?' pri':''}" onclick="setP('${k}')">${l}</button>`;
- $('#m').innerHTML=`<div class="card"><b>Datencheck</b><p class="mu">Prüft, ob dein Anbieter Dividenden für deine aktuellen Titel liefert. Der Key bleibt nur auf diesem Gerät und ist nicht im Export enthalten.</p>
+ $('#m').innerHTML=`<div class="card"><b>Termine automatisch abrufen</b><p class="mu">Holt Ex-Tage und Dividendenverlauf über deinen eigenen Worker (Anleitung im Chat). Danach nutzen Kalender und Prognose echte Termine.</p>
+ <input id="wu" value="${esc(gw())}" placeholder="https://dein-worker.workers.dev" style="width:100%;padding:8px;border-radius:6px;border:1px solid var(--ln);background:var(--bg);color:var(--tx)">
+ <p><button class="btn" onclick="try{localStorage.setItem('divworker',$('#wu').value.trim().replace(/\/$/,''))}catch(e){};$('#wst').textContent='Adresse gespeichert.'">Speichern</button> <button class="btn pri" onclick="syncEv()">Termine abrufen</button></p><div id="wst" class="gr"></div><table id="wt"></table></div>
+ `+`<div class="card"><b>Datencheck</b><p class="mu">Prüft, ob dein Anbieter Dividenden für deine aktuellen Titel liefert. Der Key bleibt nur auf diesem Gerät und ist nicht im Export enthalten.</p>
  <div class="ctl seg"><span>Anbieter:</span>${b('fmp','Financial Modeling Prep')}${b('td','Twelve Data')}</div>
  <label class="mu">API-Key</label><input id="kk" type="password" autocomplete="off" value="${esc(K[p]||'')}" placeholder="Key hier einfügen" style="width:100%;padding:8px;border-radius:6px;border:1px solid var(--ln);background:var(--bg);color:var(--tx)">
  <p><button class="btn pri" id="chkb" onclick="runChk()">Prüfen</button> <button class="btn" onclick="delK()">Key löschen</button></p>
@@ -239,9 +255,9 @@ function cal(){seedC();const now=new Date(),cur=addM(now,0),fcA=forecast(24),H=h
  ivOf=t=>{const m=S.meta[t]||{},n=m.freq?+m.freq:DV.filter(x=>x.ticker==t&&x.date.slice(0,10)>=lim).length;return n>=10?'Monatlich':n>=3?'Quartalsweise':n==2?'Halbjährlich':n==1?'Jährlich':'–'},
  yOf=t=>{const h=hm[t],s=DV.filter(x=>x.ticker==t&&x.date.slice(0,10)>=lim).reduce((a,x)=>a+x.amount,0);return h&&h.cost>0?s/h.cost*100:0},
  lastDay=t=>{const d=DV.filter(x=>x.ticker==t).sort((a,b)=>a.date<b.date?-1:1).pop();return d?Math.min(+d.date.slice(8,10),28):15},
- items0=k=>k<=cur?DV.filter(x=>ym(x.date)==k).map(x=>({t:x.ticker,d:x.date.slice(0,10),a:x.amount,e:0,q:qAt(x.ticker,x.date)})):fcA.filter(x=>x.ym==k).map(x=>({t:x.t,d:k+'-'+String(lastDay(x.t)).padStart(2,'0'),a:x.a,e:1,q:(hm[x.t]||{}).q||0})),
+ items0=k=>k<=cur?DV.filter(x=>ym(x.date)==k).map(x=>({t:x.ticker,d:x.date.slice(0,10),a:x.amount,e:0,ex:exMatch(x.ticker,x.date.slice(0,10)),q:qAt(x.ticker,x.date)})):fcA.filter(x=>x.ym==k).map(x=>{const an=annOf(x.t,k);return {t:x.t,d:an?an.d:k+'-'+String(lastDay(x.t)).padStart(2,'0'),a:x.a,e:an?0:1,ex:an?an.ex:'',q:(hm[x.t]||{}).q||0}}),
  exd=t=>{const v=parseInt((S.meta[t]||{}).exd);return isNaN(v)?null:v},
- xOf=x=>{const n=exd(x.t);if(n==null)return '';const d=new Date(x.d+'T12:00:00');d.setDate(d.getDate()-n);return d.toISOString().slice(0,10)},
+ xOf=x=>{if(x.ex)return x.ex;const n=exd(x.t)??evLag(x.t);if(n==null)return '';const d=new Date(x.d+'T12:00:00');d.setDate(d.getDate()-n);return d.toISOString().slice(0,10)},
  items=k=>{if(cd!='x')return items0(k).map(x=>({...x,p:x.d}));const [y,m]=[+k.slice(0,4),+k.slice(5)],r=[];[-1,0,1,2].forEach(o=>{const kk=addM(new Date(y,m-1+o,1),0);items0(kk).forEach(x=>{const xd=xOf(x);if(xd&&ym(xd)==k)r.push({...x,p:x.d,d:xd,e:x.e})})});return r},
  unk=k=>cd=='x'?items0(k).filter(x=>exd(x.t)==null).map(x=>({...x,p:x.d,d:''})):[],
  mk=i=>`${Y}-${String(i).padStart(2,'0')}`,months=cv=='y'?[...Array(12).keys()].map(i=>mk(i+1)):[opt.cm],sum=l=>l.reduce((s,x)=>s+x.a,0),
@@ -339,7 +355,7 @@ ${f('exd','Tage Ex-Tag → Zahltag (optional)','z.B. 8')}
 function tagEdit(t){const h=holdings().find(x=>x.t==t)||{};$('#dg').innerHTML=`<b>Tags · ${esc(h.name||t)}</b><label>Eigene Tags (mit Komma trennen)</label><input id="e_tags" value="${esc(tagsOf(t).join(', '))}" placeholder="z.B. Kernposition, Dividendenadel, Wachstum" onkeydown="if(event.key=='Enter')svTags('${t}')">${allTags().length?`<label>Vorhandene Tags (antippen)</label><div class="tags">${allTags().map(x=>tagChip(x,0)).join('')}</div>`:''}
  <p><button class="btn pri" onclick="svTags('${t}')">Speichern</button> <button class="btn" onclick="$('#dg').close()">Abbrechen</button></p>`;$('#dg').showModal();setTimeout(()=>$('#e_tags').focus(),50)}
 function svTags(t){const m=S.meta[t]||(S.meta[t]={});m.tags=parseTags($('#e_tags').value);save();$('#dg').close();render()}
-function sv(t){const m={};['type','region','country','sector','dps','freq','mo','exd'].forEach(k=>m[k]=$('#e_'+k).value);m.dps=+(m.dps+'').replace(',','.')||0;m.tags=parseTags($('#e_tags').value);m.sym=(S.meta[t]||{}).sym;S.meta[t]=m;save();$('#dg').close();render()}
+function sv(t){const m={};['type','region','country','sector','dps','freq','mo','exd'].forEach(k=>m[k]=$('#e_'+k).value);m.dps=+(m.dps+'').replace(',','.')||0;m.tags=parseTags($('#e_tags').value);m.sym=(S.meta[t]||{}).sym;m.ev=(S.meta[t]||{}).ev;m.ysym=(S.meta[t]||{}).ysym;S.meta[t]=m;save();$('#dg').close();render()}
 // ---- Import ----
 const num=s=>parseFloat(String(s).replace(/[^\d.\-]/g,''));
 function iso(s){let m=s.match(/(\d{4})-(\d{2})-(\d{2})/);if(m)return m[0];m=s.match(/(\d{2})[./](\d{2})[./](\d{4})/);return m?`${m[3]}-${m[2]}-${m[1]}`:null}
@@ -372,6 +388,7 @@ function ingest(all){const have={};S.tx.forEach(t=>have[key(t)]=(have[key(t)]||0
 $('#demo').onclick=()=>{const r=[],T=[['AAPL','Apple','Aktie','Nordamerika','USA','Technologie',1.0,4],['KO','Coca-Cola','Aktie','Nordamerika','USA','Basiskonsum',2.0,4],['VICI','VICI Properties','REIT','Nordamerika','USA','Immobilien',1.7,4],['NESN','Nestlé','Aktie','Europa','Schweiz','Basiskonsum',3.0,2],['VWRL','Vanguard FTSE All-World','ETF','Global','Irland','Diversifiziert',1.5,4]],d=new Date();
  T.forEach(([t,n,ty,re,co,se,dps,f],i)=>{S.meta[t]={type:ty,region:re,country:co,sector:se,dps:dps,freq:f,mo:''};for(let m=18;m>=1;m--){const x=new Date(d.getFullYear(),d.getMonth()-m,5+i),ds=x.toISOString().slice(0,10);
   if(m==18||m==9)r.push({id:'b'+t+m,date:ds,type:'buy',ticker:t,name:n,qty:10+i*3,price:50+i*20,amount:(10+i*3)*(50+i*20)});const sl={AAPL:[5,6],VICI:[3,8],NESN:[2,5],KO:[7,4]}[t];if(sl&&m==sl[0]){const p=(50+i*20)*(t=='NESN'?.9:1.3);r.push({id:'s'+t+m,date:ds,type:'sell',ticker:t,name:n,qty:sl[1],price:p,amount:sl[1]*p})}if(m<=16&&m%(12/f)==0)r.push({id:'d'+t+m,date:ds,type:'div',ticker:t,name:n,qty:20,price:dps/f,amount:20*dps/f*(1+i*.1)})}});
+ const ISM={AAPL:'US0378331005',KO:'US1912161007',VICI:'US9256521090',NESN:'CH0038863350',VWRL:'IE00B3RBWM25'};r.forEach(x=>x.isin=ISM[x.ticker]);
  S.tx=r;save();render()};
 $('#exp').onclick=async()=>{const blob=new Blob([JSON.stringify(S)],{type:'application/json'}),file=new File([blob],'tracker-backup.json',{type:'application/json'});
  if(navigator.canShare&&navigator.canShare({files:[file]})){try{await navigator.share({files:[file]});return}catch(e){if(e.name=='AbortError')return}}
