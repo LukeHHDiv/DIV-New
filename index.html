@@ -92,6 +92,17 @@ const evLag=t=>{const m=S.meta[t]||{};if(!m.ev)return null;const L=[];S.tx.filte
 const annOf=(t,k)=>{const nx=((S.meta[t]||{}).ev||{}).nx;if(!nx)return null;const lg=evLag(t),pay=nx.pay||(lg!=null?addD(nx.ex,lg):'');return pay&&ym(pay)==k?{d:pay,ex:nx.ex}:null};
 const gw=()=>{try{return localStorage.getItem('divworker')||''}catch(e){return ''}};
 let WR={};
+let QT={};try{QT=JSON.parse(localStorage.getItem('divq')||'{}')}catch(e){}
+let QS={t:0,n:0,of:0};
+const qP=t=>(QT[t]||{}).p||0,mvOf=h=>qP(h.t)>0?h.q*qP(h.t):h.cost,
+ qLine=h=>{const p=qP(h.t);if(!(p>0))return '';const mv=h.q*p,g=mv-h.cost,pc=(QT[h.t]||{}).pc,dd=pc>0?(p/pc-1)*100:null;return `<div class="mu" style="font-size:13px;margin-top:4px">Kurs ${eur(p)}${dd!=null?` <span class="${dd>=0?'gr':'neg'}">${dd>=0?'+':''}${dd.toFixed(2).replace('.',',')} %</span>`:''} · Wert ${eur(mv)} · <span class="${g>=0?'gr':'neg'}">${g>=0?'+':''}${eur(g)}${h.cost>0?' ('+(g/h.cost*100).toFixed(1).replace('.',',')+' %)':''}</span></div>`};
+async function fetchQ(){const u=gw();if(!u)return;const H=holdings().filter(h=>h.q>0.0001);let n=0;const st=$('#wst');if(st)st.textContent='Rufe Kurse ab …';
+ await Promise.all(H.map(async h=>{const isin=(S.tx.find(x=>x.ticker==h.t&&x.isin)||{}).isin;if(!isin)return;const q=QT[h.t]||{};
+  try{const r=await fetch(`${u}/quote?isin=${encodeURIComponent(isin)}${q.sym?'&sym='+encodeURIComponent(q.sym):''}`),j=await r.json();if(j.ok&&j.eur>0){QT[h.t]={p:j.eur,pc:j.prevEur,c:j.cur,sym:j.sym,ts:j.time||Date.now()};n++}}catch(e){}}));
+ try{localStorage.setItem('divq',JSON.stringify(QT))}catch(e){}
+ QS={t:Date.now(),n,of:H.length};const st2=$('#wst');if(st2)st2.textContent=`Kurse: ${n} von ${H.length} Titeln aktualisiert.`;
+ if(['dash','hold','det','dvd'].includes(tab)&&!$('#dg').open)render()}
+
 function saveW(){const v=$('#wu').value.trim().replace(/[\/]+$/,'');try{localStorage.setItem('divworker',v);$('#wu').value=v;$('#wst').textContent=v?'Adresse gespeichert.':'Adresse gelöscht.'}catch(e){$('#wst').textContent='Speichern nicht möglich (privater Modus?).'}}
 async function syncEv(){const u=gw(),st=$('#wst');if(!u){st.textContent='Bitte zuerst die Worker-Adresse speichern.';return}
  const H=holdings().filter(h=>h.q>0.0001);WR={};let ok=0,i=0;
@@ -135,14 +146,14 @@ const PER=[['0','Heute'],['7','7T'],['30','30T'],['365','1J'],['ytd','YTD'],['ma
 function perStart(){const n=new Date(),p=opt.per||'max';if(p=='max')return'0000-00-00';if(p=='ytd')return n.getFullYear()+'-01-01';return new Date(n.getTime()-(+p)*864e5).toISOString().slice(0,10)}
 function realized(){const pos={},ev=[];[...S.tx].sort((a,b)=>a.date<b.date?-1:1).forEach(t=>{if(!t.ticker)return;const p=pos[t.ticker]||(pos[t.ticker]={q:0,c:0});if(t.type=='buy'){p.q+=t.qty;p.c+=t.amount}else if(t.type=='sell'){const a=p.q?p.c/p.q:0;ev.push({date:t.date,g:t.amount-a*t.qty,t:t.ticker});p.c-=a*t.qty;p.q-=t.qty}});return ev}
 function dash(){seedC();const now=new Date(),H=holdings().filter(h=>h.q>0.0001).sort((a,b)=>b.cost-a.cost),fc=forecast(),per=opt.per||'max',dt=opt.dtab||'d',st=perStart(),divs=S.tx.filter(t=>t.type=='div'),
- cost=H.reduce((s,h)=>s+h.cost,0),dP=divs.filter(t=>t.date>=st).reduce((s,t)=>s+t.amount,0),rP=realized().filter(e=>e.date>=st).reduce((s,e)=>s+e.g,0),f12=fc.reduce((s,t)=>s+t.a,0),res=dP+rP,
+ cost=H.reduce((s,h)=>s+h.cost,0),hasQ=H.some(h=>qP(h.t)>0),mvT=H.reduce((s,h)=>s+mvOf(h),0),dP=divs.filter(t=>t.date>=st).reduce((s,t)=>s+t.amount,0),rP=realized().filter(e=>e.date>=st).reduce((s,e)=>s+e.g,0),f12=fc.reduce((s,t)=>s+t.a,0),res=dP+rP,
  etf=H.filter(h=>(S.meta[h.t]||{}).type=='ETF').length,cur=addM(now,0),first=S.tx.reduce((m,t)=>t.date<m?t.date:m,'9999-99-99').slice(0,7),
  nM={'0':6,'7':6,'30':6,'365':12}[per],s0=per=='max'?first:per=='ytd'?now.getFullYear()+'-01':addM(now,-(nM-1)),ks=[];
  for(let k=s0<first?first:s0;k<=cur;k=nx(k))ks.push(k);
  $('#m').innerHTML=`<div class="per">${PER.map(([k,l])=>`<button class="${per==k?'on':''}" onclick="opt.per='${k}';render()">${l}</button>`).join('')}</div>
- <div class="gw"><div class="cv g"><canvas id="c5"></canvas></div><div class="gc"><small class="mu">Investiert (Einstand)</small><b>${eur(cost)}</b><span class="pl ${res>=0?'up':'dn'}">${res>=0?'↑':'↓'} ${eur(Math.abs(res))} · ${PCT(cost?Math.abs(res)/cost*100:0)}</span></div></div>
+ <div class="gw"><div class="cv g"><canvas id="c5"></canvas></div><div class="gc"><small class="mu">${hasQ?'Marktwert':'Investiert (Einstand)'}</small><b>${eur(hasQ?mvT:cost)}</b><span class="pl ${res>=0?'up':'dn'}">${res>=0?'↑':'↓'} ${eur(Math.abs(res))} · ${PCT(cost?Math.abs(res)/cost*100:0)}</span></div></div>
  <div class="mu" style="text-align:center;margin:6px 0 2px">${H.length} Holdings · ${etf} ETFs · ${H.length-etf} Aktien · EUR</div><div class="mu" style="text-align:center;font-size:12px;margin-bottom:12px">Ertrag im Zeitraum = Dividenden + realisierte Gewinne</div>
- <div class="k4"><div class="kpi"><small>Investiert</small><b>${eur(cost)}</b><span>Einstandswert</span></div><div class="kpi"><small>Prognose 12 Monate</small><b>${eur(f12)}</b>${pl(f12,cost)}</div>
+ <div class="k4"><div class="kpi"><small>${hasQ?'Marktwert':'Investiert'}</small><b>${eur(hasQ?mvT:cost)}</b><span>${hasQ?'Einstand '+eur(cost)+' · '+(mvT-cost>=0?'+':'')+eur(mvT-cost):'Einstandswert'}</span></div><div class="kpi"><small>Prognose 12 Monate</small><b>${eur(f12)}</b>${pl(f12,cost)}</div>
  <div class="kpi"><small>Realisierte Gewinne</small><b class="${rP<0?'neg':'gr'}">${eur(rP)}</b>${pl(rP,cost)}</div><div class="kpi"><small>Dividenden</small><b class="gr">${eur(dP)}</b>${pl(dP,cost)}</div></div>
  <div style="text-align:right;margin:10px 0"><a class="more" onclick="tab='hold';render()">Alle Details anzeigen</a></div>
  <div class="stabs"><button class="${dt=='d'?'on':''}" onclick="opt.dtab='d';render()">Dividenden</button><button class="${dt=='w'?'on':''}" onclick="opt.dtab='w';render()">Wertentwicklung</button></div>
@@ -165,7 +176,7 @@ function dvd(){seedC();const now=new Date(),cur=addM(now,0),y=String(now.getFull
  upM={};fc.forEach(x=>{if(x.ym>cur)(upM[x.ym]=upM[x.ym]||[]).push({t:x.t,a:x.a,e:annOf(x.t,x.ym)?0:1,d:(annOf(x.t,x.ym)||{}).d||x.ym+'-'+String(lastDay(x.t)).padStart(2,'0'),q:(hm[x.t]||{}).q||0})});
  const up=Object.keys(upM).sort().slice(0,3).map(k=>[k,upM[k].sort((a,b)=>b.a-a.a)]),paM={};divs.forEach(x=>{(paM[ym(x.date)]=paM[ym(x.date)]||[]).push({t:x.ticker,a:x.amount,e:0,d:x.date.slice(0,10),q:qAt(x.ticker,x.date)})});
  const pa=Object.keys(paM).sort().reverse().slice(0,3).map(k=>[k,paM[k].sort((a,b)=>a.d<b.d?1:-1)]);
- const titles=Object.keys(by).sort((a,b)=>by[b]-by[a]).map(t=>{const h=hm[t],tt=ttm.filter(x=>x.ticker==t).reduce((s,x)=>s+x.a,0);return {t,v:by[t],y:h&&h.cost>0?tt/h.cost*100:0,p:total?by[t]/total*100:0}});
+ const titles=Object.keys(by).sort((a,b)=>by[b]-by[a]).map(t=>{const h=hm[t],tt=ttm.filter(x=>x.ticker==t).reduce((s,x)=>s+x.a,0);return {t,v:by[t],y:h&&qP(t)>0&&h.q>0?tt/(h.q*qP(t))*100:h&&h.cost>0?tt/h.cost*100:0,p:total?by[t]/total*100:0}});
  $('#m').innerHTML=stabs()+`<div class="mu" style="margin:4px 0 10px">Nettowerte • Persönliche Dividenden-Rendite</div><div class="k4"><div class="kpi"><small>Erhaltene Dividende im Zeitraum</small><b class="gr">${eur(total)}</b>${pl(total,cost)}</div><div class="kpi"><small>Persönliche Dividendenrendite</small><b>${PCT(cost>0?ttmT/cost*100:0)}</b><span>12 Monate auf Einstand</span></div>
  <div class="kpi"><small>Jahreseinkommen (letzte 12 Monate)</small><b>${eur(ttmT)}</b><span>Prognose: ${eur(f12)}</span></div><div class="kpi"><small>Ø monatliches Einkommen</small><b>${eur(ttmT/12)}</b><span>Seit Start: ${eur(total/mths)}</span></div></div>
  <div class="card" style="margin-top:12px"><h3>Letzte und kommende Monate</h3><div class="cv s"><canvas id="c1"></canvas></div></div>
@@ -240,7 +251,7 @@ async function runChk(){if(busy)return;const K=gk(),p=K.p||'fmp',key=$('#kk').va
 function datachk(){const K=gk(),p=K.p||'fmp',H=holdings().filter(h=>h.q>0.0001),b=(k,l)=>`<button class="btn${p==k?' pri':''}" onclick="setP('${k}')">${l}</button>`;
  $('#m').innerHTML=`<div class="card"><b>Termine automatisch abrufen</b><p class="mu">Holt Ex-Tage und Dividendenverlauf über deinen eigenen Worker (Anleitung im Chat). Danach nutzen Kalender und Prognose echte Termine.</p>
  <input id="wu" value="${esc(gw())}" placeholder="https://dein-worker.workers.dev" style="width:100%;padding:8px;border-radius:6px;border:1px solid var(--ln);background:var(--bg);color:var(--tx)">
- <p><button class="btn" onclick="saveW()">Speichern</button> <button class="btn pri" onclick="syncEv()">Termine abrufen</button></p><div id="wst" class="gr"></div><table id="wt"></table></div>
+ <p><button class="btn" onclick="saveW()">Speichern</button> <button class="btn pri" onclick="syncEv()">Termine abrufen</button> <button class="btn pri" onclick="fetchQ()">Kurse abrufen</button></p><div id="wst" class="gr"></div><table id="wt"></table></div>
  `+`<div class="card"><b>Datencheck</b><p class="mu">Prüft, ob dein Anbieter Dividenden für deine aktuellen Titel liefert. Der Key bleibt nur auf diesem Gerät und ist nicht im Export enthalten.</p>
  <div class="ctl seg"><span>Anbieter:</span>${b('fmp','Financial Modeling Prep')}${b('td','Twelve Data')}</div>
  <label class="mu">API-Key</label><input id="kk" type="password" autocomplete="off" value="${esc(K[p]||'')}" placeholder="Key hier einfügen" style="width:100%;padding:8px;border-radius:6px;border:1px solid var(--ln);background:var(--bg);color:var(--tx)">
@@ -313,7 +324,7 @@ function act(){const af=opt.af||'all',cy=opt.cy,L=[...S.tx].filter(t=>(cy&&cy!='
 function hold(){const all=holdings().filter(h=>h.q>0.0001),T=allTags();if(opt.tag&&opt.tag!='__none'&&!T.includes(opt.tag))opt.tag='';
  const fc=forecast(),H=all.filter(h=>!opt.tag||(opt.tag=='__none'?!tagsOf(h.t).length:tagsOf(h.t).includes(opt.tag))),sum=H.reduce((a,h)=>(a.c+=h.cost,a.f+=fc.filter(t=>t.t==h.t).reduce((s,t)=>s+t.a,0),a),{c:0,f:0});
  const bar=T.length?`<div class="card"><span class="tg all${!opt.tag?' on':''}" data-ftag="">Alle</span>${T.map(t=>tagChip(t,1)).join('')}<span class="tg all${opt.tag=='__none'?' on':''}" data-ftag="__none">Ohne Tag</span><div class="mu" style="margin-top:6px">${H.length} Titel · Kosten ${eur(sum.c)} · Prognose/J ${eur(sum.f)}</div></div>`:'';
- $('#m').innerHTML=`${bar}<div class="card"><table><tr><th>Wert</th><th>Stück</th><th>Kosten</th><th>Prognose/J</th><th></th></tr>${H.map(h=>`<tr><td><span class="lnk" onclick="opt.det='${h.t}';tab='det';render()"><b>${esc(h.name||h.t)}</b> ›</span><div class="tags">${tagsOf(h.t).map(t=>tagChip(t,1)).join('')}<span class="tg add" data-tagedit="${esc(h.t)}">+ Tag</span></div></td><td>${+h.q.toFixed(3)}</td><td>${eur(h.cost)}</td><td>${eur(fc.filter(t=>t.t==h.t).reduce((s,t)=>s+t.a,0))}</td><td><button class="btn" onclick="edit('${h.t}')">✎</button></td></tr>`).join('')}</table></div>`}
+ $('#m').innerHTML=`${bar}<div class="card"><table><tr><th>Wert</th><th>Stück</th><th>Kosten</th><th>Prognose/J</th><th></th></tr>${H.map(h=>`<tr><td><span class="lnk" onclick="opt.det='${h.t}';tab='det';render()"><b>${esc(h.name||h.t)}</b> ›</span>${qP(h.t)>0?`<div class="mu" style="font-size:12px">${eur(qP(h.t))} · Wert ${eur(h.q*qP(h.t))} <span class="${h.q*qP(h.t)>=h.cost?'gr':'neg'}">${h.q*qP(h.t)>=h.cost?'+':''}${h.cost>0?((h.q*qP(h.t)/h.cost-1)*100).toFixed(1).replace('.',','):'0'} %</span></div>`:''}<div class="tags">${tagsOf(h.t).map(t=>tagChip(t,1)).join('')}<span class="tg add" data-tagedit="${esc(h.t)}">+ Tag</span></div></td><td>${+h.q.toFixed(3)}</td><td>${eur(h.cost)}</td><td>${eur(fc.filter(t=>t.t==h.t).reduce((s,t)=>s+t.a,0))}</td><td><button class="btn" onclick="edit('${h.t}')">✎</button></td></tr>`).join('')}</table></div>`}
 const evm={id:'evm',afterDatasetsDraw(c){const o=c.options.plugins.evm;if(!o||!o.ev||!o.on)return;const x=c.ctx,a=c.chartArea,X=c.scales.x;x.save();x.font='10px sans-serif';x.textAlign='center';x.textBaseline='middle';o.ev.forEach(e=>{const px=X.getPixelForValue(e.x);if(px<a.left||px>a.right)return;x.strokeStyle=e.c+'99';x.lineWidth=1;x.beginPath();x.moveTo(px,a.top+14);x.lineTo(px,a.bottom);x.stroke();x.fillStyle=e.c+'55';x.beginPath();x.roundRect?x.roundRect(px-8,a.top,16,14,4):x.rect(px-8,a.top,16,14);x.fill();x.fillStyle='#fff';x.fillText(e.l,px,a.top+7.5)});x.restore()}};
 function det(){const t=opt.det,H0=holdings().filter(x=>x.q>0.0001),h=holdings().find(x=>x.t==t);if(!h){tab='hold';return render()}
  const sub=opt.dsub||'h',now=new Date(),cur=addM(now,0),m=S.meta[t]||{},fc=forecast(12).filter(x=>x.t==t).sort((a,b)=>a.ym<b.ym?-1:1),f12=fc.reduce((s,x)=>s+x.a,0),
@@ -323,7 +334,7 @@ function det(){const t=opt.det,H0=holdings().filter(x=>x.q>0.0001),h=holdings().
  idx=H0.findIndex(x=>x.t==t),prv=H0[(idx-1+H0.length)%H0.length],nxt=H0[(idx+1)%H0.length],kb=(l,v,x='')=>`<div class="kpi"><small>${l}</small><b>${v}</b>${x}</div>`,
  row=(l,v)=>`<tr><td style="text-align:left">${l}</td><td>${v}</td></tr>`,first=all.length?all[0].date.slice(0,10):'';
  const nav=`<div class="row" style="margin-bottom:8px"><a class="more" onclick="tab='hold';render()">‹ Holdings</a><span class="mu">${idx>=0?`<a class="more" onclick="opt.det='${prv.t}';render()">‹</a> ${idx+1} / ${H0.length} <a class="more" onclick="opt.det='${nxt.t}';render()">›</a>`:'Verkauft'}</span></div>`;
- const head=`<div class="card"><div class="row"><div><small class="mu">${esc(m.type||'')}${isin?' · '+esc(isin):''}</small><br><b style="font-size:19px">${esc(h.name||t)}</b></div><button class="btn" onclick="edit('${t}')">✎</button></div><div class="tags" style="margin-top:8px">${tagsOf(t).map(x=>tagChip(x,0)).join('')}<span class="tg add" data-tagedit="${esc(t)}">+ Tag</span></div></div>
+ const head=`<div class="card"><div class="row"><div><small class="mu">${esc(m.type||'')}${isin?' · '+esc(isin):''}</small><br><b style="font-size:19px">${esc(h.name||t)}</b>${qLine(h)}</div><button class="btn" onclick="edit('${t}')">✎</button></div><div class="tags" style="margin-top:8px">${tagsOf(t).map(x=>tagChip(x,0)).join('')}<span class="tg add" data-tagedit="${esc(t)}">+ Tag</span></div></div>
  <div class="stabs">${[['o','Übersicht'],['h','Deine Holdings'],['d','Dividenden']].map(([k,l])=>`<button class="${sub==k?'on':''}" onclick="opt.dsub='${k}';render()">${l}</button>`).join('')}</div>`;
  let body='',run=null;
  if(sub=='o'){const buys=trd.filter(x=>x.type=='buy'&&x.qty>0);
@@ -334,7 +345,7 @@ function det(){const t=opt.det,H0=holdings().filter(x=>x.q>0.0001),h=holdings().
   all.forEach(x=>{const ms=new Date(x.date.slice(0,10)).getTime();if(x.type=='buy'){q+=x.qty;c+=x.amount;pts.push({x:ms,y:c});ev.push({x:ms,l:'K',c:'#4fa0a4'})}else if(x.type=='sell'){const a=q?c/q:0;c-=a*x.qty;q-=x.qty;pts.push({x:ms,y:Math.max(0,c)});ev.push({x:ms,l:'V',c:'#e09f3a'})}else ev.push({x:ms,l:'D',c:'#7fcfae'})});
   if(pts.length)pts.push({x:Date.now(),y:pts[pts.length-1].y});
   const act=all.slice().reverse(),tot=dTot+real;
-  body=`<div class="card"><div class="ctl">${chk('ov','Aktivitäten')}</div><div class="cv"><canvas id="c1"></canvas></div><div class="mu" style="font-size:12px">Eingesetztes Kapital (Einstand). Kurswerte hat die App nicht.</div></div>
+  body=`<div class="card"><div class="ctl">${chk('ov','Aktivitäten')}</div><div class="cv"><canvas id="c1"></canvas></div><div class="mu" style="font-size:12px">Eingesetztes Kapital (Einstand).</div></div>
   <div class="k4">${kb('Investiert',eur(h.cost))}${kb('Anteile',+h.q.toFixed(4))}${kb('Einstieg',open?eur(avg):'–','<span>Ø Kaufkurs</span>')}${kb('Gesamtertrag','<span class="'+(tot<0?'neg':'gr')+'">'+eur(tot)+'</span>',pl(tot,h.cost))}${kb('Dividenden','<span class="gr">'+eur(dTot)+'</span>',pl(dTot,h.cost))}${kb('Realisiert','<span class="'+(real<0?'neg':'')+'">'+eur(real)+'</span>')}</div>
   <div class="card" style="margin-top:12px"><h3>Details</h3><table>${row('Investiert',eur(h.cost))}${row('Dividenden erhalten',eur(dTot))}${row('Realisierte Gewinne',eur(real))}${row('Rendite (Einstand)',PCT(h.cost?tot/h.cost*100:0))}${row('Prognose 12 Monate',eur(f12))}</table></div>
   <div class="card"><h3>Aktivitäten</h3><table>${act.map(x=>`<tr><td style="text-align:left">${dm(x.date.slice(0,10))}<br><small style="color:${TC2[x.type]}">${TL[x.type]}</small></td><td>${x.type=='div'?'':+(+x.qty).toFixed(4)+' Stk.'}</td><td>${eur(x.amount)}</td></tr>`).join('')}</table></div>`;
@@ -397,7 +408,7 @@ $('#exp').onclick=async()=>{const blob=new Blob([JSON.stringify(S)],{type:'appli
 $('#fj').onchange=async e=>{const f=e.target.files[0];e.target.value='';if(!f)return;try{const j=JSON.parse(await f.text());if(!Array.isArray(j.tx))throw Error('Keine gültige Sicherung');
  const have=new Set(S.tx.map(key));let n=0;j.tx.forEach(t=>{if(!have.has(key(t))){S.tx.push(t);have.add(key(t));n++}});Object.entries(j.meta||{}).forEach(([k,v])=>{if(!S.meta[k])S.meta[k]=v});save();alert(n+' Buchungen übernommen.');render()}catch(x){alert('Fehler: '+x.message)}};
 $('#clr').onclick=()=>{if(confirm('Alle Daten löschen?')){S={tx:[],meta:{}};save();render()}};
-render();
+render();fetchQ();document.addEventListener('visibilitychange',()=>{if(!document.hidden&&Date.now()-QS.t>300000)fetchQ()});
 try{navigator.storage&&navigator.storage.persist&&navigator.storage.persist()}catch(e){}
 if('serviceWorker' in navigator)addEventListener('load',()=>navigator.serviceWorker.register('sw.js').catch(()=>{}));
 </script></body></html>
