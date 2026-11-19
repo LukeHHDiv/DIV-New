@@ -33,6 +33,11 @@ dialog{border:1px solid var(--ln);border-radius:10px;background:var(--card);colo
 .k4{display:grid;grid-template-columns:1fr 1fr;gap:10px}.k4 .kpi small{display:block}.k4 .kpi b{font-size:20px}.more{color:var(--sg);cursor:pointer}
 .bar{height:4px;background:var(--bg);border-radius:2px;margin:2px 0 10px}.bar i{display:block;height:100%;border-radius:2px}
 .hy{font-weight:600;margin:6px 0;font-size:13px}.hm{display:grid;grid-template-columns:repeat(3,1fr);gap:2px}.hm.q{grid-template-columns:repeat(2,1fr)}.hm div{padding:12px 14px;min-height:76px;color:#fff}.hm div b{display:block;font-weight:500}.hm div span{font-size:15px}.dt{border-collapse:separate;border-spacing:2px;font-size:12px;min-width:100%}.dt th{color:var(--mu);font-weight:500;padding:6px 8px;text-align:center;white-space:nowrap}.dt td{padding:10px 8px;text-align:center;border-radius:4px;white-space:nowrap}
+#toast{position:fixed;z-index:60;left:50%;bottom:calc(92px + env(safe-area-inset-bottom,0px));transform:translate(-50%,24px);width:calc(100% - 24px);max-width:496px;display:flex;align-items:center;gap:10px;padding:12px 14px;border-radius:16px;background:rgba(30,31,36,.94);backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px);border:1px solid rgba(224,159,58,.55);box-shadow:0 10px 30px rgba(0,0,0,.6);font-size:13.5px;opacity:0;pointer-events:none;transition:.28s}
+#toast.on{opacity:1;transform:translate(-50%,0);pointer-events:auto}
+#toast:before{content:'!';flex:none;width:22px;height:22px;border-radius:50%;background:#e09f3a;color:#14161a;font-weight:700;text-align:center;line-height:22px}
+#toast span{flex:1}#toast button{background:none;border:0;color:var(--tx);font:inherit;cursor:pointer;padding:6px 8px;border-radius:8px}#toast .tb{background:rgba(224,159,58,.22);color:#e09f3a;font-weight:600}
+.hlp li{margin:6px 0}.hlp h4{margin:14px 0 4px}
 .hm div.e{background:rgba(255,255,255,.04);color:var(--mu)}
 .sg2{display:inline-flex;background:rgba(255,255,255,.06);border-radius:12px;padding:3px}.sg2 button{background:none;border:0;color:var(--mu);font:inherit;font-weight:600;padding:8px 18px;border-radius:9px;cursor:pointer}.sg2 button.on{background:var(--bg);color:var(--tx)}
 .k2{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:14px}.kb{background:var(--bg);border-radius:16px;padding:16px}.kb small{color:var(--mu);display:block;font-size:14px}.kb b{font-size:22px;font-weight:600;display:block;margin-top:8px}.rule{height:1px;background:var(--ln);margin:14px 0}
@@ -64,6 +69,7 @@ aside.open{transform:translate(-50%,0);opacity:1;pointer-events:auto}
 <button data-n="hold"><svg viewBox="0 0 24 24"><rect x="3" y="6" width="18" height="12" rx="2.5"/><circle cx="12" cy="12" r="2.6"/><path d="M6.5 12h.01M17.5 12h.01"/></svg><span>Holdings</span></button>
 <button data-n="more"><svg viewBox="0 0 24 24"><circle cx="5" cy="12" r="1.4"/><circle cx="12" cy="12" r="1.4"/><circle cx="19" cy="12" r="1.4"/></svg><span>Mehr</span></button>
 </nav>
+<div id="toast" role="status" aria-live="polite"></div>
 <dialog id="dg"></dialog>
 <script>
 const $=s=>document.querySelector(s),P=['#e09f3a','#44939a','#c0452e','#a3d1be','#5f84ac','#e5d8a8','#8a5a9a','#b8651f'];
@@ -80,17 +86,26 @@ function holdings(){const h={};[...S.tx].sort((a,b)=>a.date<b.date?-1:1).forEach
  if(t.type=='buy'){x.q+=t.qty;x.cost+=t.amount}else if(t.type=='sell'){const a=x.q?x.cost/x.q:0;x.cost-=a*t.qty;x.q-=t.qty}else x.div+=t.amount});
  return Object.values(h)}
 function addM(d,n){const x=new Date(d.getFullYear(),d.getMonth()+n,1);return x.getFullYear()+'-'+String(x.getMonth()+1).padStart(2,'0')}
-function fcMonth(h,k){const m=S.meta[h.t]||{},past=S.tx.filter(t=>t.type=='div'&&t.ticker==h.t),cur=addM(new Date(),0);
+let FCC={};
+const qtyAt=(t,d)=>S.tx.filter(x=>x.ticker==t&&x.date<=d&&(x.type=='buy'||x.type=='sell')).reduce((s,x)=>s+(x.type=='buy'?x.qty:-x.qty),0);
+const SRC={manual:'Eigene Angaben (Dividende je Aktie)',datenblatt:'Datenblatt (Yahoo-Verlauf, an deinen Zahlungen kalibriert)',historie:'Eigene Zahlungshistorie'};
+function fcSrc(h){const m=S.meta[h.t]||{};if(+m.dps>0)return 'manual';return m.ev&&m.ev.ex&&m.ev.ex.length>=2?'datenblatt':'historie'}
+function fcInfo(t){if(FCC[t])return FCC[t];const m=S.meta[t]||{},ev=m.ev&&m.ev.ex?m.ev.ex:[],R=[];
+ S.tx.filter(x=>x.type=='div'&&x.ticker==t).forEach(x=>{const e=exMatch(t,x.date.slice(0,10));if(!e)return;const ps=ev.filter(d=>d[0]==e).reduce((s,d)=>s+d[1],0),q=qtyAt(t,x.date);if(ps>0&&q>0)R.push(x.amount/(q*ps))});
+ R.sort((a,b)=>a-b);const f=R.length?R[R.length>>1]:((m.ev&&m.ev.fx)||1),t0=new Date().toISOString().slice(0,10),d1=addD(t0,-365),d2=addD(d1,-365),a1=ev.filter(d=>d[0]>d1),a0=ev.filter(d=>d[0]>d2&&d[0]<=d1);
+ let g=1;if(a0.length&&a1.length===a0.length){const s0=a0.reduce((s,d)=>s+d[1],0),s1=a1.reduce((s,d)=>s+d[1],0);if(s0>0)g=Math.min(1.15,Math.max(.9,s1/s0))}
+ const lag=evLag(t),pm={};ev.forEach(d=>{const k=ym(addD(d[0],lag==null?12:lag));pm[k]=(pm[k]||0)+d[1]});
+ return FCC[t]={f,g,pm,span:ev.length?(new Date(ev[ev.length-1][0])-new Date(ev[0][0]))/864e5:0}}
+function fcMonth(h,k){const m=S.meta[h.t]||{},past=S.tx.filter(t=>t.type=='div'&&t.ticker==h.t),cur=addM(new Date(),0),mAhead=(+k.slice(0,4)-+cur.slice(0,4))*12+(+k.slice(5)-+cur.slice(5));
  if(+m.dps>0){const f=+m.freq||4;let mo=(m.mo||'').split(',').map(Number).filter(x=>x>=1&&x<=12);if(!mo.length)mo=[...new Set(past.map(t=>+t.date.slice(5,7)))];if(!mo.length)mo=Array.from({length:f},(_,i)=>(i*12/f|0)+3).map(x=>(x-1)%12+1);return mo.includes(+k.slice(5))?h.q*m.dps/f:0}
- const bk=z=>addM(new Date(+z.slice(0,4),+z.slice(5)-1,1),-12);let k0=bk(k);while(k0>cur)k0=bk(k0);return past.filter(t=>ym(t.date)==k0).reduce((s,t)=>s+t.amount,0)}
+ const bk=z=>addM(new Date(+z.slice(0,4),+z.slice(5)-1,1),-12);
+ if(fcSrc(h)=='datenblatt'){const I=fcInfo(h.t);let kk=bk(k),ps=0;for(let n=0;n<3&&!(ps=I.pm[kk]||0);n++)kk=bk(kk);
+  if(ps>0)return h.q*ps*I.f*Math.pow(I.g,mAhead>0?Math.ceil(mAhead/12):0);if(I.span>=330)return 0}
+ let k0=bk(k);while(k0>cur)k0=bk(k0);return past.filter(t=>ym(t.date)==k0).reduce((s,t)=>{const q=qtyAt(h.t,t.date);return s+(q>0?t.amount*h.q/q:t.amount)},0)}
 const fcList=k=>holdings().filter(h=>h.q>0.0001).map(h=>({t:h.t,a:fcMonth(h,k)})).filter(x=>x.a>0);
 function forecast(n=12){const now=new Date(),out=[],H=holdings().filter(h=>h.q>0.0001);
- H.forEach(h=>{const m=S.meta[h.t]||{};const past=S.tx.filter(t=>t.type=='div'&&t.ticker==h.t);
-  if(+m.dps>0){const f=+m.freq||4;let mo=(m.mo||'').split(',').map(Number).filter(x=>x>=1&&x<=12);
-   if(!mo.length)mo=[...new Set(past.map(t=>+t.date.slice(5,7)))];if(!mo.length)mo=Array.from({length:f},(_,i)=>(i*12/f|0)+3).map(x=>(x-1)%12+1);
-   for(let i=1;i<=n;i++){const k=addM(now,i);if(mo.includes(+k.slice(5)))out.push({ym:k,t:h.t,a:h.q*m.dps/f})}}
-  else for(let i=1;i<=n;i++){const k=addM(now,i),k0=addM(now,(i-1)%12+1-12);const a=past.filter(t=>ym(t.date)==k0).reduce((s,t)=>s+t.amount,0);if(a)out.push({ym:k,t:h.t,a})}});
- return out}
+ H.forEach(h=>{for(let i=1;i<=n;i++){const k=addM(now,i),a=fcMonth(h,k);if(a>0)out.push({ym:k,t:h.t,a,src:fcSrc(h)})}});return out}
+const fcNote=()=>{const c={manual:0,datenblatt:0,historie:0};holdings().filter(h=>h.q>0.0001).forEach(h=>c[fcSrc(h)]++);return `<div class="mu" style="font-size:12px;margin-top:12px">Schätzung, solange keine bestätigten Termine vorliegen: ${c.datenblatt} Titel aus Datenblatt-Verlauf, ${c.historie} aus eigener Zahlungshistorie${c.manual?', '+c.manual+' mit eigenen Angaben':''}.</div>`};
 const addD=(s,n)=>{const d=new Date(s+'T12:00:00');d.setDate(d.getDate()+n);return d.toISOString().slice(0,10)};
 const exMatch=(t,p)=>{const m=S.meta[t]||{};if(!m.ev)return '';let b='';m.ev.ex.forEach(([d])=>{if(d<=p&&(new Date(p)-new Date(d))/864e5<=60&&d>b)b=d});return b};
 const evLag=t=>{const m=S.meta[t]||{};if(!m.ev)return null;const L=[];S.tx.filter(x=>x.type=='div'&&x.ticker==t).forEach(x=>{const p=x.date.slice(0,10),e=exMatch(t,p);if(e)L.push(Math.round((new Date(p)-new Date(e))/864e5))});if(!L.length)return null;L.sort((a,b)=>a-b);return L[L.length>>1]};
@@ -102,11 +117,28 @@ let QT={};try{QT=JSON.parse(localStorage.getItem('divq')||'{}')}catch(e){}
 let QS={t:0,n:0,of:0};
 const qP=t=>(QT[t]||{}).p||0,mvOf=h=>qP(h.t)>0?h.q*qP(h.t):h.cost,
  qLine=h=>{const p=qP(h.t);if(!(p>0))return '';const mv=h.q*p,g=mv-h.cost,pc=(QT[h.t]||{}).pc,dd=pc>0?(p/pc-1)*100:null;return `<div class="mu" style="font-size:13px;margin-top:4px">Kurs ${eur(p)}${dd!=null?` <span class="${dd>=0?'gr':'neg'}">${dd>=0?'+':''}${dd.toFixed(2).replace('.',',')} %</span>`:''} · Wert ${eur(mv)} · <span class="${g>=0?'gr':'neg'}">${g>=0?'+':''}${eur(g)}${h.cost>0?' ('+(g/h.cost*100).toFixed(1).replace('.',',')+' %)':''}</span></div>`};
-async function fetchQ(){const u=gw();if(!u)return;const H=holdings().filter(h=>h.q>0.0001);let n=0;const st=$('#wst');if(st)st.textContent='Rufe Kurse ab …';
- await Promise.all(H.map(async h=>{const isin=(S.tx.find(x=>x.ticker==h.t&&x.isin)||{}).isin;if(!isin)return;const q=QT[h.t]||{};
-  try{const r=await fetch(`${u}/quote?isin=${encodeURIComponent(isin)}${q.sym?'&sym='+encodeURIComponent(q.sym):''}`),j=await r.json();if(j.ok&&j.eur>0){QT[h.t]={p:j.eur,pc:j.prevEur,c:j.cur,sym:j.sym,ts:j.time||Date.now()};n++}}catch(e){}}));
- try{localStorage.setItem('divq',JSON.stringify(QT))}catch(e){}
- QS={t:Date.now(),n,of:H.length};const st2=$('#wst');if(st2)st2.textContent=`Kurse: ${n} von ${H.length} Titeln aktualisiert.`;
+let TO_=null,lastW=0;
+function toast(msg,help=true){const t=$('#toast');if(!t)return;t.innerHTML=`<span>${msg}</span>${help?'<button class="tb" onclick="showHelp()">Hilfe</button>':''}<button onclick="hideToast()" aria-label="Schließen">✕</button>`;t.classList.add('on');clearTimeout(TO_);TO_=setTimeout(hideToast,16000)}
+function hideToast(){const t=$('#toast');if(t)t.classList.remove('on')}
+function warn(msg,force){if(!force&&Date.now()-lastW<600000)return;lastW=Date.now();toast(msg)}
+function showHelp(){hideToast();const u=gw(),ok=+(localStorage.getItem('divqok')||0),d=$('#dg');
+ d.innerHTML=`<h3 style="margin-top:0">Hilfe: Daten nicht abrufbar</h3><div class="hlp">
+ <p class="mu">Deine Buchungen und alle Auswertungen funktionieren weiter. Es fehlen nur Kurse und Termine. Zuletzt gespeicherte Kurse bleiben sichtbar.${ok?'<br>Letzter erfolgreicher Kursabruf: <b>'+new Date(ok).toLocaleString('de-DE',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'})+'</b>':''}</p>
+ <h4>Das kannst du prüfen</h4><ol>
+ <li><b>Internet:</b> WLAN oder Mobilfunk an? Dann unten auf „Erneut versuchen“ tippen.</li>
+ <li><b>Worker-Adresse:</b> ${u?'Gespeichert ist <code>'+esc(u)+'</code>. ':'Es ist noch keine Adresse gespeichert. '}Unter Mehr → Datencheck kontrollieren und speichern.</li>
+ <li><b>Worker erreichbar?</b> ${u?'<a class="more" href="'+esc(u)+'/" target="_blank" rel="noopener">Adresse im Browser öffnen</a>. Es sollte eine kurze Meldung mit „ok“ erscheinen.':'Erst nach dem Speichern der Adresse prüfbar.'}</li>
+ <li><b>Yahoo kurz gestört?</b> Das kommt vor. Später noch einmal probieren, die App versucht es beim nächsten Öffnen automatisch.</li>
+ <li><b>Einzelne Titel fehlen?</b> Dann fehlt oft die ISIN oder Yahoo findet den ETF an keiner Börse. Das Börsenkürzel lässt sich im Datencheck pro Titel anpassen.</li>
+ <li><b>Gar nichts geht mehr:</b> Cloudflare → Workers → div-tracker → <i>Edit code</i>, den Inhalt von worker.js neu einfügen und auf Deploy tippen.</li></ol></div>
+ <div class="row" style="margin-top:14px;gap:8px;flex-wrap:wrap"><button class="btn pri" onclick="$('#dg').close();fetchQ(1);if(gw())syncEv()">Erneut versuchen</button><button class="btn" onclick="$('#dg').close();tab='dck';render()">Zum Datencheck</button><button class="btn" onclick="$('#dg').close()">Schließen</button></div>`;d.showModal()}
+async function fetchQ(force){const u=gw();if(!u)return;if(navigator.onLine===false){warn('Du bist offline. Kurse und Termine können gerade nicht abgerufen werden.',force);return}
+ const H=holdings().filter(h=>h.q>0.0001),want=H.filter(h=>S.tx.some(x=>x.ticker==h.t&&x.isin));let n=0,errs=0;const st=$('#wst');if(st)st.textContent='Rufe Kurse ab …';
+ await Promise.all(want.map(async h=>{const isin=(S.tx.find(x=>x.ticker==h.t&&x.isin)||{}).isin,q=QT[h.t]||{};
+  try{const r=await fetch(`${u}/quote?isin=${encodeURIComponent(isin)}${q.sym?'&sym='+encodeURIComponent(q.sym):''}`),j=await r.json();if(j.ok&&j.eur>0){QT[h.t]={p:j.eur,pc:j.prevEur,c:j.cur,sym:j.sym,ts:j.time||Date.now()};n++}}catch(e){errs++}}));
+ try{localStorage.setItem('divq',JSON.stringify(QT));if(n>0)localStorage.setItem('divqok',String(Date.now()))}catch(e){}
+ QS={t:Date.now(),n,of:want.length};const st2=$('#wst');if(st2)st2.textContent=`Kurse: ${n} von ${want.length} Titeln aktualisiert.`;
+ if(want.length){if(n==0)warn(errs?'Der Worker ist nicht erreichbar. Es werden die zuletzt gespeicherten Kurse gezeigt.':'Es wurden keine Kurse gefunden. Es werden die zuletzt gespeicherten Kurse gezeigt.',force);else if(n<want.length)warn(`Für ${want.length-n} von ${want.length} Titeln gab es keinen Kurs.`,force)}
  if(['dash','hold','det','dvd'].includes(tab)&&!$('#dg').open)render()}
 
 function saveW(){const v=$('#wu').value.trim().replace(/[\/]+$/,'');try{localStorage.setItem('divworker',v);$('#wu').value=v;$('#wst').textContent=v?'Adresse gespeichert.':'Adresse gelöscht.'}catch(e){$('#wst').textContent='Speichern nicht möglich (privater Modus?).'}}
@@ -114,8 +146,8 @@ async function syncEv(){const u=gw(),st=$('#wst');if(!u){st.textContent='Bitte z
  const H=holdings().filter(h=>h.q>0.0001);WR={};let ok=0,i=0;
  for(const h of H){i++;st.textContent=`Rufe ab … ${i}/${H.length}`;const isin=(S.tx.find(x=>x.ticker==h.t&&x.isin)||{}).isin;if(!isin){WR[h.t]='keine ISIN';continue}
   const m=S.meta[h.t]=S.meta[h.t]||{};try{const r=await fetch(`${u}/div?isin=${encodeURIComponent(isin)}${m.ysym?'&sym='+encodeURIComponent(m.ysym):''}`),j=await r.json();
-   if(j.ok){m.ev={ex:j.divs.map(d=>[d.ex,d.amt]),nx:j.next||null,ts:Date.now()};m.ysym=j.sym;ok++;WR[h.t]=`✓ ${j.sym} · ${j.divs.length} Termine${j.next?' · nächster Ex-Tag '+j.next.ex:''}`}else WR[h.t]='✗ '+(j.error||'nichts gefunden')}catch(e){WR[h.t]='✗ Worker nicht erreichbar'}}
- save();st.textContent=`Fertig: ${ok} von ${H.length} Titeln aktualisiert.`;drawW()}
+   if(j.ok){m.ev={ex:j.divs.map(d=>[d.ex,d.amt]),nx:j.next||null,fx:j.fx||null,cur:j.cur||'',ts:Date.now()};m.ysym=j.sym;ok++;WR[h.t]=`✓ ${j.sym} · ${j.divs.length} Termine${j.next?' · nächster Ex-Tag '+j.next.ex:''}`}else WR[h.t]='✗ '+(j.error||'nichts gefunden')}catch(e){WR[h.t]='✗ Worker nicht erreichbar'}}
+ save();st.textContent=`Fertig: ${ok} von ${H.length} Titeln aktualisiert.`;drawW();if(ok<H.length)warn(ok==0?'Termine konnten nicht abgerufen werden.':`Für ${H.length-ok} von ${H.length} Titeln gab es keine Termine.`,true)}
 function drawW(){const t=$('#wt');if(t)t.innerHTML=Object.entries(WR).map(([k,v])=>`<tr><td><b>${esc(nameOf(k)||k)}</b></td><td class="${v[0]=='✓'?'gr':'mu'}" style="text-align:right">${esc(v)}</td></tr>`).join('')}
 const esc=x=>String(x??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const tagsOf=t=>(S.meta[t]||{}).tags||[],allTags=()=>[...new Set(Object.values(S.meta).flatMap(m=>m.tags||[]))].sort((a,b)=>a.localeCompare(b,'de'));
@@ -146,7 +178,7 @@ function chart(id,cfg){if(ch[id])ch[id].destroy();Chart.defaults.color=getComput
  ch[id]=new Chart($('#'+id),{...cfg,options:{responsive:true,maintainAspectRatio:false,animation:anim,datasets:{line:{animations:lineA}},...cfg.options}})}
 const chk=(k,l)=>`<label><input type="checkbox" ${opt[k]?'checked':''} onchange="opt.${k}=this.checked;render()"> ${l}</label>`;
 const empty=()=>!S.tx.length&&(($('#m').innerHTML='<div class="card">Noch keine Daten. Importiere deine Trading-212-PDF/CSV oder klicke auf <b>Demo</b>.</div>'),true);
-function render(){document.querySelectorAll('#menu [data-k]').forEach(b=>b.classList.toggle('on',b.dataset.k==tab));document.querySelectorAll('#bn [data-n]').forEach(b=>b.classList.toggle('on',b.dataset.n=='dvd'?['dvd','dvm','dvy','dvc'].includes(tab):b.dataset.n=='more'?['dck'].includes(tab):b.dataset.n=='ana'?['ana','cash','act'].includes(tab):b.dataset.n=='hold'?['hold','det'].includes(tab):b.dataset.n==tab));$('#ttl').textContent=tabs[tab];if(empty())return;({dash,dvd,dvm,dvy,dvc,cal,ana,cash,hold,dck:datachk,act,det})[tab]()}
+function render(){FCC={};document.querySelectorAll('#menu [data-k]').forEach(b=>b.classList.toggle('on',b.dataset.k==tab));document.querySelectorAll('#bn [data-n]').forEach(b=>b.classList.toggle('on',b.dataset.n=='dvd'?['dvd','dvm','dvy','dvc'].includes(tab):b.dataset.n=='more'?['dck'].includes(tab):b.dataset.n=='ana'?['ana','cash','act'].includes(tab):b.dataset.n=='hold'?['hold','det'].includes(tab):b.dataset.n==tab));$('#ttl').textContent=tabs[tab];if(empty())return;({dash,dvd,dvm,dvy,dvc,cal,ana,cash,hold,dck:datachk,act,det})[tab]()}
 function costSeries(ks){const T=[...S.tx].filter(t=>['buy','sell'].includes(t.type)&&t.ticker).sort((a,b)=>a.date<b.date?-1:1),h={};let i=0,tot=0;return ks.map(k=>{while(i<T.length&&ym(T[i].date)<=k){const t=T[i++],x=h[t.ticker]||(h[t.ticker]={q:0,c:0}),b=x.c;if(t.type=='buy'){x.q+=t.qty;x.c+=t.amount}else{const a=x.q?x.c/x.q:0;x.c-=a*t.qty;x.q-=t.qty}tot+=x.c-b}return Math.max(tot,0)})}
 const PER=[['0','Heute'],['7','7T'],['30','30T'],['365','1J'],['ytd','YTD'],['max','Max']],PCT=v=>(isFinite(v)?v:0).toFixed(2).replace('.',',')+' %',pl=(v,b)=>`<span class="pl ${v>=0?'up':'dn'}">${v>=0?'↑':'↓'} ${PCT(b?Math.abs(v)/b*100:0)}</span>`;
 function perStart(){const n=new Date(),p=opt.per||'max';if(p=='max')return'0000-00-00';if(p=='ytd')return n.getFullYear()+'-01-01';return new Date(n.getTime()-(+p)*864e5).toISOString().slice(0,10)}
@@ -189,7 +221,7 @@ function dvd(){seedC();const now=new Date(),cur=addM(now,0),y=String(now.getFull
  $('#m').innerHTML=stabs()+`<div class="mu" style="margin:4px 0 10px">Nettowerte • Persönliche Dividenden-Rendite</div><div class="k4"><div class="kpi"><small>Erhaltene Dividende im Zeitraum</small><b class="gr">${eur(total)}</b>${pl(total,cost)}</div><div class="kpi"><small>Persönliche Dividendenrendite</small><b>${PCT(cost>0?ttmT/cost*100:0)}</b><span>12 Monate auf Einstand</span></div>
  <div class="kpi"><small>Jahreseinkommen (letzte 12 Monate)</small><b>${eur(ttmT)}</b><span>12 Mon.: ${eur(f12)} · ${yearFc().y}: ${eur(yearFc().tot)}</span></div><div class="kpi"><small>Ø monatliches Einkommen</small><b>${eur(ttmT/12)}</b><span>Seit Start: ${eur(total/mths)}</span></div></div>
  <div class="card" style="margin-top:12px"><h3>Letzte und kommende Monate</h3><div class="cv s"><canvas id="c1"></canvas></div></div>
- ${sec('up','Angekündigte Dividenden',moreG('up',up))}${sec('pa','Letzte Auszahlungen',moreG('pa',pa))}
+ ${sec('up','Angekündigte Dividenden',moreG('up',up)+fcNote())}${sec('pa','Letzte Auszahlungen',moreG('pa',pa))}
  ${sec('ti','Dividendentitel',thead+(titles.map(trow).join('')||'<div class="mu">Keine aktiven Titel mit Dividenden</div>'))}
  ${sold.length?sec('so','Verkaufte Titel ('+sold.length+')',thead+sold.map(trow).join('')):''}
  <div class="card"><h3>Größte Zahler</h3>${top.map(([t,v])=>`<div class="row"><span><span style="color:${tcol(t)}">●</span> <b>${esc(nameOf(t)||t)}</b></span><span>${eur(v)} <small class="mu">${PCT(total?v/total*100:0)}</small></span></div><div class="bar"><i style="width:${total?v/total*100:0}%;background:${tcol(t)}"></i></div>`).join('')||'<div class="mu">Noch keine Dividenden</div>'}</div>`;
@@ -199,18 +231,21 @@ function selMon(k){if(!MD||!$('#msel'))return;const y=k.slice(0,4),m=+k.slice(5)
  const rows=(fut?MD.fc.filter(x=>x.ym==k).map(x=>[x.t,x.a]):Object.keys(MD.A).map(t=>[t,MD.A[t][k]||0]).filter(r=>r[1]>0)).sort((a,b)=>b[1]-a[1]),tot=rows.reduce((s,r)=>s+r[1],0);
  $('#msel').innerHTML=`<span class="pill">${MN[m-1]} ${y}${fut?' (E)':''}</span><span class="${fut?'mu':'gr'}">${eur(tot)}</span>`;
  $('#mdet').innerHTML=rows.length?rows.map(([t,a])=>`<tr><td><span style="color:${tcol(t)}">●</span> <b>${esc(nameOf(t)||t)}</b></td><td>${eur(a)}</td></tr>`).join(''):'<tr><td class="mu">Keine Dividenden in diesem Monat</td></tr>'}
-function dvm(){seedC();const now=new Date(),cur=addM(now,0),hn=Math.max(12,23-now.getMonth()),fc=opt.fc?forecast(hn):[],divs=S.tx.filter(t=>t.type=='div'&&t.ticker),first=S.tx.reduce((m,t)=>t.date<m?t.date:m,'9999-99-99'),last=opt.fc?addM(now,hn):cur,ks=[],hy=opt.hy||(opt.hy={}),hk=k=>hy[k.slice(0,4)];
- for(let k=(first.slice(0,4)<String(now.getFullYear())?now.getFullYear()+'-01':first.slice(0,7));k<=last;k=nx(k))ks.push(k);
+function dvm(){seedC();const now=new Date(),y=now.getFullYear(),cur=addM(now,0),hn=Math.max(12,23-now.getMonth()),fc=forecast(hn),divs=S.tx.filter(t=>t.type=='div'&&t.ticker),first=S.tx.reduce((m,t)=>t.date<m?t.date:m,'9999-99-99'),last=addM(now,hn),ks=[],hy=opt.hy||(opt.hy={}),hist=!!opt.hist;
+ for(let k=(hist||first.slice(0,4)>=String(y)?first.slice(0,7):y+'-01');k<=last;k=nx(k))ks.push(k);
  const A={};divs.forEach(t=>{const o=A[t.ticker]||(A[t.ticker]={});o[ym(t.date)]=(o[ym(t.date)]||0)+t.amount});
  const tot=t=>Object.values(A[t]).reduce((a,b)=>a+b,0),order=Object.keys(A).sort((a,b)=>tot(b)-tot(a)),all=order.reduce((s,t)=>s+tot(t),0);MD={A,fc,cur};
- const ds=[];if(opt.act)order.forEach(t=>ds.push({label:t,data:ks.map(k=>k>cur||hk(k)?null:(A[t][k]||0)),backgroundColor:tcol(t),borderRadius:0,stack:'s'}));
- if(opt.fc)ds.push({label:'Prognose',data:ks.map(k=>k>cur&&!hk(k)?fc.filter(x=>x.ym==k).reduce((s,x)=>s+x.a,0):null),backgroundColor:HP,borderColor:HB,borderWidth:1,borderRadius:0,stack:'s'});
- const yrs=[...new Set(ks.map(k=>k.slice(0,4)))],ysum=Y=>ks.filter(k=>k.startsWith(Y)).reduce((s,k)=>s+(k<=cur?order.reduce((a,t)=>a+(A[t][k]||0),0):fc.filter(x=>x.ym==k).reduce((a,x)=>a+x.a,0)),0),
- yrChips=yrs.map(Y=>`<div class="chip2${hy[Y]?' off':''}" onclick="hyt('${Y}')"><span class="bdg">${Y}${+Y>now.getFullYear()?' (E)':''}</span><b>${eur(ysum(Y))}</b></div>`).join('');
- $('#m').innerHTML=stabs()+`<div class="card"><div class="row"><span>Seit ${dm(first)}</span><b class="gr">${eur(all)}</b></div><div class="row" id="msel"></div><div class="cv"><canvas id="c1"></canvas></div><div class="chips2"><div class="chip2${opt.act?'':' off'}" onclick="opt.act=!opt.act;render()"><span class="sw" style="background:${G}"></span>Erhalten<b>${eur(all)}</b></div><div class="chip2${opt.fc?'':' off'}" onclick="opt.fc=!opt.fc;render()"><span class="sw" style="background:repeating-linear-gradient(135deg,rgba(210,210,216,.6) 0 2px,transparent 2px 4px);border:1px solid rgba(210,210,216,.45)"></span>Prognose<b>${eur(forecast(12).reduce((s,x)=>s+x.a,0))}</b></div>${yrChips}</div><div class="mu" style="font-size:12px;margin-top:10px">Tippe auf einen Monat für die Details.</div></div>
+ const ds=[];order.forEach(t=>ds.push({label:t,data:ks.map(k=>k>cur||(+k.slice(0,4)==y&&hy.C)?null:(A[t][k]||0)),backgroundColor:tcol(t),borderRadius:0,stack:'s'}));
+ const fsum=k=>fc.filter(x=>x.ym==k).reduce((s,x)=>s+x.a,0);
+ ds.push({label:'Prognose '+y,data:ks.map(k=>k>cur&&+k.slice(0,4)==y&&!hy.F0?fsum(k):null),backgroundColor:HC0,borderColor:FC0,borderWidth:1,borderRadius:0,stack:'s'});
+ ds.push({label:'Prognose '+(y+1),data:ks.map(k=>+k.slice(0,4)==y+1&&!hy.F1?fsum(k):null),backgroundColor:HC1,borderColor:FC1,borderWidth:1,borderRadius:0,stack:'s'});
+ const yf=yearFc(),got=yf.got,f1=fc.filter(x=>x.ym.startsWith(String(y+1))).reduce((s,x)=>s+x.a,0),
+ tile=(on,fn,sw,l,v)=>`<div class="chip2${on?'':' off'}" style="${on?'':'text-decoration:none'}" onclick="${fn}"><span class="sw" style="${sw}"></span>${l}<b>${eur(v)}</b></div>`,
+ hat=(c,a)=>`background:repeating-linear-gradient(45deg,${c} 0 2px,${a} 2px 5px);border:1px solid ${c}`;
+ $('#m').innerHTML=stabs()+`<div class="card"><div class="row"><span>Seit ${dm(first)}</span><b class="gr">${eur(all)}</b></div><div class="row" id="msel"></div><div class="cv"><canvas id="c1"></canvas></div><div class="chips2">${tile(hist,"opt.hist=!opt.hist;render()",'background:'+G,'Erhalten gesamt (Historie)',all)}${tile(!hy.C,"hyt('C')",'background:'+P[3],'Laufendes Jahr '+y,got)}${tile(!hy.F0,"hyt('F0')",hat(FC0,'rgba(224,159,58,.2)'),'Prognose '+y,yf.tot)}${tile(!hy.F1,"hyt('F1')",hat(FC1,'rgba(176,124,192,.2)'),'Prognose '+(y+1),f1)}</div><div class="mu" style="font-size:12px;margin-top:10px">Tippe auf einen Monat für die Details. „Historie“ blendet die Monate vor ${y} ein.</div></div>
  <div class="card"><h3>Details</h3><table id="mdet"></table></div>
  <div class="card"><h3>Nach Titel</h3><table>${order.map(t=>`<tr><td><span style="color:${tcol(t)}">●</span> <b>${esc(nameOf(t)||t)}</b></td><td>${eur(tot(t))}</td><td>${all?(tot(t)/all*100).toFixed(1):0} %</td></tr>`).join('')}</table></div>`;
- chart('c1',{type:'bar',data:{labels:ks.map((k,i)=>(+k.slice(5)==1||!i)?[MN[+k.slice(5)-1],k.slice(2,4)]:MN[+k.slice(5)-1]),datasets:ds},options:{plugins:{legend:{display:false},tooltip:{...TT,callbacks:{title:c=>{const d=c[0].dataset,k=ks[c[0].dataIndex];if(d.label=='Prognose')return 'Prognose · '+MNL(k);const n=nameOf(d.label);return n||d.label},label:c=>{const d=c.dataset,k=ks[c.dataIndex];if(d.label=='Prognose')return fc.filter(x=>x.ym==k).sort((a,b)=>b.a-a.a).map(x=>`${nameOf(x.t)||x.t}: ${eur(x.a)}`);return `${MNL(k)}: ${eur(c.raw)}`}}}},interaction:{mode:'nearest',intersect:true},scales:{x:{stacked:true,grid:{display:false}},y:{stacked:true,ticks:{callback:EY}}},onClick:(e,_,c)=>{const i=Math.round(c.scales.x.getValueForPixel(e.x));if(i>=0&&i<ks.length)selMon(ks[i])}}});
+ chart('c1',{type:'bar',data:{labels:ks.map((k,i)=>(+k.slice(5)==1||!i)?[MN[+k.slice(5)-1],k.slice(2,4)]:MN[+k.slice(5)-1]),datasets:ds},options:{plugins:{legend:{display:false},tooltip:{...TT,callbacks:{title:c=>{const d=c[0].dataset,k=ks[c[0].dataIndex];if(d.label.startsWith('Prognose'))return d.label+' · '+MNL(k);const n=nameOf(d.label);return n||d.label},label:c=>{const d=c.dataset,k=ks[c.dataIndex];if(d.label.startsWith('Prognose'))return fc.filter(x=>x.ym==k).sort((a,b)=>b.a-a.a).map(x=>`${nameOf(x.t)||x.t}: ${eur(x.a)}`);return `${MNL(k)}: ${eur(c.raw)}`}}}},interaction:{mode:'nearest',intersect:true},scales:{x:{stacked:true,grid:{display:false}},y:{stacked:true,ticks:{callback:EY}}},onClick:(e,_,c)=>{const i=Math.round(c.scales.x.getValueForPixel(e.x));if(i>=0&&i<ks.length)selMon(ks[i])}}});
  selMon(cur)}
 function hyt(y){opt.hy=opt.hy||{};opt.hy[y]=!opt.hy[y];render()}
 function dtx(k){opt.dx=opt.dx||{};opt.dx[k]=!opt.dx[k];render()}
@@ -274,7 +309,7 @@ async function runChk(){if(busy)return;const K=gk(),p=K.p||'fmp',key=$('#kk').va
 function datachk(){const K=gk(),p=K.p||'fmp',H=holdings().filter(h=>h.q>0.0001),b=(k,l)=>`<button class="btn${p==k?' pri':''}" onclick="setP('${k}')">${l}</button>`;
  $('#m').innerHTML=`<div class="card"><b>Termine automatisch abrufen</b><p class="mu">Holt Ex-Tage und Dividendenverlauf über deinen eigenen Worker (Anleitung im Chat). Danach nutzen Kalender und Prognose echte Termine.</p>
  <input id="wu" value="${esc(gw())}" placeholder="https://dein-worker.workers.dev" style="width:100%;padding:8px;border-radius:6px;border:1px solid var(--ln);background:var(--bg);color:var(--tx)">
- <p><button class="btn" onclick="saveW()">Speichern</button> <button class="btn pri" onclick="syncEv()">Termine abrufen</button> <button class="btn pri" onclick="fetchQ()">Kurse abrufen</button></p><div id="wst" class="gr"></div><table id="wt"></table></div>
+ <p><button class="btn" onclick="saveW()">Speichern</button> <button class="btn pri" onclick="syncEv()">Termine abrufen</button> <button class="btn pri" onclick="fetchQ(1)">Kurse abrufen</button> <button class="btn" onclick="showHelp()">Hilfe</button></p><div id="wst" class="gr"></div><table id="wt"></table></div>
  `+`<div class="card"><b>Datencheck</b><p class="mu">Prüft, ob dein Anbieter Dividenden für deine aktuellen Titel liefert. Der Key bleibt nur auf diesem Gerät und ist nicht im Export enthalten.</p>
  <div class="ctl seg"><span>Anbieter:</span>${b('fmp','Financial Modeling Prep')}${b('td','Twelve Data')}</div>
  <label class="mu">API-Key</label><input id="kk" type="password" autocomplete="off" value="${esc(K[p]||'')}" placeholder="Key hier einfügen" style="width:100%;padding:8px;border-radius:6px;border:1px solid var(--ln);background:var(--bg);color:var(--tx)">
@@ -362,7 +397,7 @@ function det(){const t=opt.det,H0=holdings().filter(x=>x.q>0.0001),h=holdings().
  let body='',run=null;
  if(sub=='o'){const buys=trd.filter(x=>x.type=='buy'&&x.qty>0);
   body=`<div class="card"><h3>Deine Kaufkurse</h3><div class="mu" style="font-size:12px;margin-bottom:6px">Ohne Kursdaten zeigt die App deine Kaufkurse statt des Kurs-Charts.</div><div class="cv s"><canvas id="c1"></canvas></div></div>
-  <div class="card"><h3>Stammdaten</h3><table>${row('Name',esc(h.name||t))}${row('ISIN',esc(isin||'–'))}${row('Art',esc(m.type||'–'))}${row('Branche',esc(m.sector||'–'))}${row('Region',esc(m.region||'–'))}${row('Land',esc(m.country||'–'))}${row('Erste Buchung',first?dm(first):'–')}${row('Käufe / Verkäufe',trd.filter(x=>x.type=='buy').length+' / '+trd.filter(x=>x.type=='sell').length)}</table></div>`;
+  <div class="card"><h3>Stammdaten</h3><table>${row('Name',esc(h.name||t))}${row('ISIN',esc(isin||'–'))}${row('Art',esc(m.type||'–'))}${row('Branche',esc(m.sector||'–'))}${row('Region',esc(m.region||'–'))}${row('Land',esc(m.country||'–'))}${row('Erste Buchung',first?dm(first):'–')}${row('Prognose-Basis',SRC[fcSrc(h)])}${row('Käufe / Verkäufe',trd.filter(x=>x.type=='buy').length+' / '+trd.filter(x=>x.type=='sell').length)}</table></div>`;
   run=()=>chart('c1',{type:'line',data:{labels:buys.map(x=>dm(x.date.slice(0,10))),datasets:[{label:'Kaufkurs',data:buys.map(x=>x.amount/x.qty),borderColor:tcol(t),backgroundColor:tcol(t),borderWidth:2,tension:.25,pointRadius:3,pointHoverRadius:4},...(open?[{label:'Ø Kaufkurs',data:buys.map(()=>avg),borderColor:'rgba(210,210,216,.8)',borderWidth:1,borderDash:[3,4],pointRadius:0,noGlow:true}]:[])]},options:{plugins:{legend:{display:false},tooltip:{...TT,callbacks:{label:c=>c.dataset.label+': '+eur(c.raw)}}},scales:{x:{grid:{display:false},ticks:{maxTicksLimit:5,maxRotation:0}},y:{ticks:{callback:v=>v+' €'}}}}})}
  else if(sub=='h'){if(opt.ov===undefined)opt.ov=true;let q=0,c=0;const pts=[],ev=[];
   all.forEach(x=>{const ms=new Date(x.date.slice(0,10)).getTime();if(x.type=='buy'){q+=x.qty;c+=x.amount;pts.push({x:ms,y:c});ev.push({x:ms,l:'K',c:'#4fa0a4'})}else if(x.type=='sell'){const a=q?c/q:0;c-=a*x.qty;q-=x.qty;pts.push({x:ms,y:Math.max(0,c)});ev.push({x:ms,l:'V',c:'#e09f3a'})}else ev.push({x:ms,l:'D',c:'#7fcfae'})});
@@ -420,9 +455,9 @@ function ingest(all){const have={};S.tx.forEach(t=>have[key(t)]=(have[key(t)]||0
  $('#dg').innerHTML=`<b>⚠️ ${dup.length} mögliche Duplikate</b><p class="mu">Diese Buchungen existieren bereits. Haken setzen = trotzdem aufnehmen.</p>${dup.map((t,i)=>`<label class="dup"><input type="checkbox" id="d${i}"><span>${t.date} · ${{buy:'Kauf',sell:'Verkauf',div:'Dividende'}[t.type]} · ${t.ticker} · ${t.qty} · ${eur(t.amount)}</span></label>`).join('')}
  <p>${ok.length} neue Buchungen werden übernommen.</p><button class="btn pri" id="dgo">Übernehmen</button>`;$('#dg').showModal();
  $('#dgo').onclick=()=>{dup.forEach((t,i)=>{if($('#d'+i).checked)ok.push(t)});S.tx.push(...ok);save();$('#dg').close();render()}}
-$('#demo').onclick=()=>{const r=[],T=[['AAPL','Apple','Aktie','Nordamerika','USA','Technologie',1.0,4],['KO','Coca-Cola','Aktie','Nordamerika','USA','Basiskonsum',2.0,4],['VICI','VICI Properties','REIT','Nordamerika','USA','Immobilien',1.7,4],['NESN','Nestlé','Aktie','Europa','Schweiz','Basiskonsum',3.0,2],['VWRL','Vanguard FTSE All-World','ETF','Global','Irland','Diversifiziert',1.5,4]],d=new Date();
- T.forEach(([t,n,ty,re,co,se,dps,f],i)=>{S.meta[t]={type:ty,region:re,country:co,sector:se,dps:dps,freq:f,mo:''};for(let m=18;m>=1;m--){const x=new Date(d.getFullYear(),d.getMonth()-m,5+i),ds=x.toISOString().slice(0,10);
-  if(m==18||m==9)r.push({id:'b'+t+m,date:ds,type:'buy',ticker:t,name:n,qty:10+i*3,price:50+i*20,amount:(10+i*3)*(50+i*20)});const sl={AAPL:[5,6],VICI:[3,8],NESN:[2,5],KO:[7,4]}[t];if(sl&&m==sl[0]){const p=(50+i*20)*(t=='NESN'?.9:1.3);r.push({id:'s'+t+m,date:ds,type:'sell',ticker:t,name:n,qty:sl[1],price:p,amount:sl[1]*p})}if(m<=16&&m%(12/f)==0)r.push({id:'d'+t+m,date:ds,type:'div',ticker:t,name:n,qty:20,price:dps/f,amount:20*dps/f*(1+i*.1)})}});
+$('#demo').onclick=()=>{const r=[],T=[['AAPL','Apple','Aktie','Nordamerika','USA','Technologie',1.0,4],['KO','Coca-Cola','Aktie','Nordamerika','USA','Basiskonsum',2.0,4],['VICI','VICI Properties','REIT','Nordamerika','USA','Immobilien',1.7,4],['NESN','Nestlé','Aktie','Europa','Schweiz','Basiskonsum',3.0,2],['VWRL','Vanguard FTSE All-World','ETF','Global','Irland','Diversifiziert',1.5,4]],d=new Date(),MX=Math.max(4,d.getMonth()),B2=Math.max(2,Math.round(MX*.55)),SM=v=>Math.max(1,Math.min(v,B2-1));
+ T.forEach(([t,n,ty,re,co,se,dps,f],i)=>{S.meta[t]={type:ty,region:re,country:co,sector:se,dps:dps,freq:f,mo:''};for(let m=MX;m>=1;m--){const x=new Date(d.getFullYear(),d.getMonth()-m,5+i),ds=x.toISOString().slice(0,10);
+  if(m==MX||m==B2)r.push({id:'b'+t+m,date:ds,type:'buy',ticker:t,name:n,qty:10+i*3,price:50+i*20,amount:(10+i*3)*(50+i*20)});const sl={AAPL:[SM(4),6],VICI:[SM(3),8],NESN:[SM(2),5],KO:[SM(5),4]}[t];if(sl&&m==sl[0]){const p=(50+i*20)*(t=='NESN'?.9:1.3);r.push({id:'s'+t+m,date:ds,type:'sell',ticker:t,name:n,qty:sl[1],price:p,amount:sl[1]*p})}if(m<MX&&m%(12/f)==0)r.push({id:'d'+t+m,date:ds,type:'div',ticker:t,name:n,qty:20,price:dps/f,amount:20*dps/f*(1+i*.1)})}});
  const ISM={AAPL:'US0378331005',KO:'US1912161007',VICI:'US9256521090',NESN:'CH0038863350',VWRL:'IE00B3RBWM25'};r.forEach(x=>x.isin=ISM[x.ticker]);
  S.tx=r;save();render()};
 $('#exp').onclick=async()=>{const blob=new Blob([JSON.stringify(S)],{type:'application/json'}),file=new File([blob],'tracker-backup.json',{type:'application/json'});
