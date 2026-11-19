@@ -78,7 +78,7 @@ let S={tx:[],meta:{}};try{S=JSON.parse(localStorage.getItem('dt'))||S}catch(e){}
 let tab='dash',opt={act:true,fc:true,cum:true,dim:'type',tag:'',per:'max',dtab:'d'},ch={};
 const save=()=>{try{localStorage.setItem('dt',JSON.stringify(S))}catch(e){}};
 const MN=['Jan','Feb','Mär','Apr','Mai','Jun','Jul','Aug','Sep','Okt','Nov','Dez'];
-const tabs={dash:'Dashboard',dvd:'Dividenden · Übersicht',dvm:'Dividenden · Monatlich fortlaufend',dvy:'Dividenden · Monatlich pro Jahr',dvc:'Dividenden · Akkumuliert pro Jahr',cal:'Dividendenkalender',ana:'Analyse',cash:'Kapitalfluss',hold:'Holdings',dck:'Datencheck',act:'Aktivitäten',det:'Details'};
+const tabs={dash:'Dashboard',dvd:'Dividenden · Übersicht',dvm:'Dividenden · Monatlich fortlaufend',dvy:'Dividenden · Monatlich pro Jahr',dvc:'Dividenden · Akkumuliert pro Jahr',dtx:'Dividenden · Steuer',cal:'Dividendenkalender',ana:'Analyse',cash:'Kapitalfluss',hold:'Holdings',dck:'Datencheck',act:'Aktivitäten',det:'Details'};
 $('#menu').onclick=e=>{const k=e.target.closest('[data-k]');if(k){tab=k.dataset.k;$('#sb').classList.remove('open');render()}};$('#bn').onclick=e=>{const b=e.target.closest('[data-n]');if(!b)return;if(b.dataset.n=='more'){$('#sb').classList.toggle('open');return}tab=b.dataset.n;if(tab=='dash')opt.dtab='d';$('#sb').classList.remove('open');render()};
 document.addEventListener('click',e=>{if(!e.target.closest('#sb,#bn'))$('#sb').classList.remove('open')});$('#menu').addEventListener('click',e=>{if(e.target.closest('#demo,#exp,#clr'))$('#sb').classList.remove('open')});
 const ym=d=>d.slice(0,7),key=t=>t.xid?'id:'+t.xid:[t.date,t.type,t.ticker,(+t.qty).toFixed(4),(+t.amount).toFixed(2)].join('|');
@@ -102,9 +102,11 @@ function fcMonth(h,k){const m=S.meta[h.t]||{},past=S.tx.filter(t=>t.type=='div'&
  if(fcSrc(h)=='datenblatt'){const I=fcInfo(h.t);let kk=bk(k),ps=0;for(let n=0;n<3&&!(ps=I.pm[kk]||0);n++)kk=bk(kk);
   if(ps>0)return h.q*ps*I.f*Math.pow(I.g,mAhead>0?Math.ceil(mAhead/12):0);if(I.span>=330)return 0}
  let k0=bk(k);while(k0>cur)k0=bk(k0);return past.filter(t=>ym(t.date)==k0).reduce((s,t)=>{const q=qtyAt(h.t,t.date);return s+(q>0?t.amount*h.q/q:t.amount)},0)}
-const fcList=k=>holdings().filter(h=>h.q>0.0001).map(h=>({t:h.t,a:fcMonth(h,k)})).filter(x=>x.a>0);
-function forecast(n=12){const now=new Date(),out=[],H=holdings().filter(h=>h.q>0.0001);
+const fcListRaw=k=>holdings().filter(h=>h.q>0.0001).map(h=>({t:h.t,a:fcMonth(h,k)})).filter(x=>x.a>0);
+function forecastRaw(n=12){const now=new Date(),out=[],H=holdings().filter(h=>h.q>0.0001);
  H.forEach(h=>{for(let i=1;i<=n;i++){const k=addM(now,i),a=fcMonth(h,k);if(a>0)out.push({ym:k,t:h.t,a,src:fcSrc(h)})}});return out}
+const fcList=k=>fcListRaw(k).map(x=>({...x,a:x.a*fcF(x.t,k)}));
+const forecast=n=>forecastRaw(n).map(x=>({...x,a:x.a*fcF(x.t,x.ym)}));
 const fcNote=()=>{const c={manual:0,datenblatt:0,historie:0};holdings().filter(h=>h.q>0.0001).forEach(h=>c[fcSrc(h)]++);return `<div class="mu" style="font-size:12px;margin-top:12px">Schätzung, solange keine bestätigten Termine vorliegen: ${c.datenblatt} Titel aus Datenblatt-Verlauf, ${c.historie} aus eigener Zahlungshistorie${c.manual?', '+c.manual+' mit eigenen Angaben':''}.</div>`};
 const addD=(s,n)=>{const d=new Date(s+'T12:00:00');d.setDate(d.getDate()+n);return d.toISOString().slice(0,10)};
 const exMatch=(t,p)=>{const m=S.meta[t]||{};if(!m.ev)return '';let b='';m.ev.ex.forEach(([d])=>{if(d<=p&&(new Date(p)-new Date(d))/864e5<=60&&d>b)b=d});return b};
@@ -112,7 +114,71 @@ const evLag=t=>{const m=S.meta[t]||{};if(!m.ev)return null;const L=[];S.tx.filte
 const annOf=(t,k)=>{const nx=((S.meta[t]||{}).ev||{}).nx;if(!nx)return null;const lg=evLag(t),pay=nx.pay||(lg!=null?addD(nx.ex,lg):'');return pay&&ym(pay)==k?{d:pay,ex:nx.ex}:null};
 const gw=()=>{try{return localStorage.getItem('divworker')||''}catch(e){return ''}};
 let WR={};
-const yearFc=()=>{const n=new Date(),y=String(n.getFullYear()),got=S.tx.filter(t=>t.type=='div'&&t.date.startsWith(y)).reduce((s,t)=>s+t.amount,0),rest=forecast(12).filter(x=>x.ym.startsWith(y)).reduce((s,x)=>s+x.a,0);return {y,got,rest,tot:got+rest}};
+
+// ---- Steuer / Brutto-Netto ----
+let TX={};try{TX=JSON.parse(localStorage.getItem('taxset')||'{}')}catch(e){}
+let TXC=null,TXM=new Map(),TXW={};
+const TS=()=>({fb:TX.fb??1000,kist:TX.kist||0,tfs:TX.tfs??30,vp:TX.vp||0,all:!!TX.all});
+const WHT={US:15,CH:35,FR:12.8,NL:15,CA:15,DK:27,ES:19,IT:26,SE:30,FI:35,NO:25,AT:27.5,BE:30,JP:15.315,AU:0,GB:0,IE:0,LU:0,DE:0,SG:0,HK:0};
+const isETF=t=>/etf|fonds/i.test((S.meta[t]||{}).type||'');
+const whtOf=t=>{if(t in TXW)return TXW[t];const i=(S.tx.find(x=>x.ticker==t&&x.isin)||{}).isin||'',c=i.slice(0,2).toUpperCase();return TXW[t]=Math.min(.6,(WHT[c]??15)/100)};
+const grossOf=x=>x.gross>x.amount+.005?x.gross:x.amount/(1-whtOf(x.ticker));
+function taxCalc(){if(TXC)return TXC;const ts=TS(),k=ts.kist/100,rate=.25/(1+.25*k)*(1+.055+k),cy=String(new Date().getFullYear());
+ const ev=realized().map(e=>({...e,y:e.date.slice(0,4),etf:isETF(e.t)}));
+ const dv0=S.tx.filter(t=>t.type=='div'&&t.ticker).map(x=>{const g=grossOf(x);return{y:x.date.slice(0,4),g,w:Math.max(0,g-x.amount),etf:isETF(x.ticker)}});
+ const fcx=forecastRaw(24).map(x=>{const g=x.a/(1-whtOf(x.t));return{y:x.ym.slice(0,4),g,w:g-x.a,etf:isETF(x.t),fc:1}});
+ const sum=(a,f)=>a.reduce((s,x)=>s+f(x),0);
+ const calc=extra=>{const dv=extra?[...dv0,...fcx]:dv0,yrs=[...new Set([...ev.map(e=>e.y),...dv.map(d=>d.y)])].sort(),out={};let c1={A:+ts.vp||0,B:0},c0={A:+ts.vp||0,B:0};
+  yrs.forEach(y=>{const E=ev.filter(e=>e.y==y),D=dv.filter(d=>d.y==y),T=1-ts.tfs/100,
+   gS=sum(E.filter(e=>!e.etf&&e.g>0),e=>e.g),lS=sum(E.filter(e=>!e.etf&&e.g<0),e=>e.g),gE=sum(E.filter(e=>e.etf&&e.g>0),e=>e.g),lE=sum(E.filter(e=>e.etf&&e.g<0),e=>e.g),
+   sg=gS+lS,eg=(gE+lE)*T,dS=sum(D.filter(d=>!d.etf),d=>d.g),dE=sum(D.filter(d=>d.etf),d=>d.g)*T,G=sum(D,d=>d.g),W=sum(D,d=>d.w),Wc=sum(D,d=>Math.min(d.w,.15*d.g));
+   const run=(wd,c)=>{let A=sg-c.A,B=eg+(wd?dS+dE:0)-c.B,cA=0,cB=0;if(ts.all){B+=A;A=0}if(A<0){cA=-A;A=0}if(B<0){const t=Math.min(A,-B);A-=t;B+=t;if(B<0){cB=-B;B=0}}
+    const base=A+B,used=Math.min(ts.fb,base),tx=base-used;return{base,used,tx,raw:tx*rate,cA,cB}};
+   const r1=run(1,c1),r0=run(0,c0),tax=Math.max(0,r1.raw-r0.raw-Wc),f=G-W>0?(G-W-tax)/(G-W):1;
+   out[y]={y,G,W,Wc,dS,dE,sg,gS,lS,gE,lE,eg,r1,r0,tax,f,net:G-W-tax,ci:{...c1},co:{A:r1.cA,B:r1.cB},rate};c1={A:r1.cA,B:r1.cB};c0={A:r0.cA,B:r0.cB}});return out};
+ const act=calc(0),pr=calc(1),f={},pf={};Object.keys(act).forEach(y=>f[y]=act[y].f);Object.keys(pr).forEach(y=>pf[y]=pr[y].f);return TXC={y:act,f,pf,rate}}
+const bnM=()=>opt.bn||'n';
+const dvAdj=x=>{if(x.type!='div')return x;let r=TXM.get(x);if(r)return r;const T=taxCalc(),y=x.date.slice(0,4);r={...x,raw:x.amount,amount:bnM()=='b'?grossOf(x):x.amount*(T.f[y]??1)};TXM.set(x,r);return r};
+const dvTx=()=>S.tx.filter(t=>t.type=='div').map(dvAdj);
+const fcF=(t,k)=>bnM()=='b'?1/(1-whtOf(t)):(taxCalc().pf[k.slice(0,4)]??1);
+const bnBar=()=>`<div class="row" style="margin:0 0 10px;gap:8px;flex-wrap:wrap;justify-content:flex-start"><div class="sg2"><button class="${bnM()=='b'?'on':''}" onclick="opt.bn='b';render()">Brutto</button><button class="${bnM()=='n'?'on':''}" onclick="opt.bn='n';render()">Netto</button></div><button class="btn" onclick="tab='dtx';render()">Zusammensetzung</button><button class="btn" onclick="taxDlg()">Steuer-Einstellungen</button></div>`;
+function taxDlg(){const t=TS(),d=$('#dg');d.innerHTML=`<h3 style="margin-top:0">Steuer-Einstellungen</h3><p class="mu" style="font-size:13px">Grundlage der Netto-Werte. Es ist nur eine Schätzung, keine Steuerberatung.</p>
+ <label class="mu">Freistellungsauftrag / Sparer-Pauschbetrag (€ pro Jahr)</label><input id="t_fb" type="number" step="1" value="${t.fb}" style="width:100%">
+ <label class="mu">Kirchensteuer</label><select id="t_k" style="width:100%">${[[0,'keine'],[8,'8 % (Bayern, BW)'],[9,'9 % (übrige Länder)']].map(([v,l])=>`<option value="${v}" ${t.kist==v?'selected':''}>${l}</option>`).join('')}</select>
+ <label class="mu">Teilfreistellung für ETFs / Fonds (%)</label><input id="t_t" type="number" step="1" value="${t.tfs}" style="width:100%"><div class="mu" style="font-size:12px">30 % für Aktienfonds. Gilt für alle Titel mit Typ „ETF“ oder „Fonds“.</div>
+ <label class="mu">Aktien-Verlustvortrag aus Vorjahren (€)</label><input id="t_v" type="number" step="1" min="0" value="${t.vp}" style="width:100%">
+ <label style="display:flex;gap:8px;align-items:center;margin-top:12px"><input id="t_a" type="checkbox" ${t.all?'checked':''}> Aktienverluste auch gegen Dividenden verrechnen</label><div class="mu" style="font-size:12px">Gesetzlich dürfen Verluste aus Aktienverkäufen nur mit Aktiengewinnen verrechnet werden. Mit Haken rechnest du vereinfacht alles gegeneinander.</div>
+ <div class="row" style="margin-top:14px;gap:8px"><button class="btn pri" onclick="saveTax()">Speichern</button><button class="btn" onclick="$('#dg').close()">Abbrechen</button></div>`;d.showModal()}
+function saveTax(){TX={fb:Math.max(0,+$('#t_fb').value||0),kist:+$('#t_k').value||0,tfs:Math.min(100,Math.max(0,+$('#t_t').value||0)),vp:Math.max(0,+$('#t_v').value||0),all:$('#t_a').checked};try{localStorage.setItem('taxset',JSON.stringify(TX))}catch(e){}$('#dg').close();render()}
+function dvt(){const R=taxCalc(),ys=Object.keys(R.y).sort(),cy=String(new Date().getFullYear()),Y=opt.ty&&R.y[opt.ty]?opt.ty:(R.y[cy]?cy:ys[ys.length-1]);
+ if(!Y){$('#m').innerHTML=stabs()+'<div class="card mu">Noch keine Dividenden vorhanden.</div>';return}
+ const r=R.y[Y],ts=TS(),pc=v=>(v*100).toLocaleString('de-DE',{maximumFractionDigits:3})+' %',neg=v=>`<span style="color:#c0452e">${eur(v)}</span>`,sg=v=>v<0?neg(v):eur(v),
+ row=(l,v,o={})=>`<tr style="${o.b?'font-weight:700;border-top:1px solid var(--ln)':''}"><td style="text-align:left;${o.i?'padding-left:16px;color:var(--mu)':''}">${l}</td><td>${v}</td></tr>`,
+ sells=realized().filter(e=>e.date.startsWith(Y)).sort((a,b)=>a.date<b.date?-1:1),
+ used=r.r1.used,pct=ts.fb>0?Math.min(100,used/ts.fb*100):0,tf=ts.tfs,
+ sel=`<div class="sg2" style="margin-bottom:12px">${ys.map(y=>`<button class="${y==Y?'on':''}" onclick="opt.ty='${y}';render()">${y}</button>`).join('')}</div>`;
+ $('#m').innerHTML=stabs()+sel+`<div class="card"><h3 style="margin-top:0">Zusammensetzung ${Y}</h3><div class="mu" style="font-size:12px;margin:-6px 0 8px">Geschätzt${Y==cy?' – bisher erhaltene Beträge im laufenden Jahr':''}</div><table>
+ ${row('Brutto-Dividenden',eur(r.G),{b:1})}${row('Quellensteuer (Ausland)',sg(-r.W),{i:1})}${row('Nach Quellensteuer (wie bei Trading 212)',eur(r.G-r.W),{b:1})}
+ </table></div>
+ <div class="card"><h3 style="margin-top:0">Verrechnung mit Verkäufen</h3><table>
+ ${row('Steuerpflichtige Dividenden'+(tf?' (ETF nach '+tf+' % Teilfreistellung)':''),eur(r.dS+r.dE),{i:1})}
+ ${row('Gewinne aus Aktienverkäufen',eur(r.gS),{i:1})}${row('Verluste aus Aktienverkäufen',sg(r.lS),{i:1})}
+ ${row('Gewinne/Verluste ETF-Verkäufe (nach Teilfreistellung)',sg(r.eg),{i:1})}
+ ${r.ci.A+r.ci.B>0?row('Verlustvortrag aus Vorjahren',sg(-(r.ci.A+r.ci.B)),{i:1}):''}
+ ${row('Steuerpflichtiger Überschuss',eur(r.r1.base),{b:1})}
+ ${row('Freistellungsauftrag ('+eur(ts.fb)+')',sg(-used),{i:1})}
+ ${row('Zu versteuern',eur(r.r1.tx),{b:1})}
+ ${row('Steuer '+pc(r.rate),eur(r.r1.raw),{i:1})}
+ ${row('Anrechenbare Quellensteuer (max. 15 %)',sg(-Math.min(r.Wc,Math.max(0,r.r1.raw-r.r0.raw))),{i:1})}
+ ${r.r0.raw>0?row('davon auf Verkaufsgewinne',eur(r.r0.raw),{i:1}):''}
+ ${row('Deutsche Steuer auf Dividenden',sg(-r.tax),{b:1})}
+ </table>
+ <div style="margin-top:12px"><div class="row" style="margin:0 0 4px"><span class="mu">Freibetrag genutzt</span><b>${eur(used)} von ${eur(ts.fb)}</b></div><div style="height:8px;border-radius:4px;background:rgba(255,255,255,.08);overflow:hidden"><div style="width:${pct}%;height:100%;background:${pct>=100?'#e09f3a':'#44939a'}"></div></div></div>
+ ${r.co.A+r.co.B>0?`<div class="mu" style="font-size:12px;margin-top:10px">Verlustvortrag ins nächste Jahr: <b>${eur(r.co.A+r.co.B)}</b>${r.co.A>0?' (davon Aktien '+eur(r.co.A)+')':''}</div>`:''}</div>
+ <div class="card"><div class="row" style="margin:0"><b>Netto-Dividenden ${Y}</b><b class="gr" style="font-size:20px">${eur(r.net)}</b></div><div class="mu" style="font-size:12px;margin-top:4px">${r.G>0?'Das sind '+PCT(r.net/r.G*100)+' der Brutto-Dividenden.':''}</div></div>
+ ${sells.length?`<div class="card"><h3 style="margin-top:0">Verkäufe ${Y}</h3><table>${sells.map(e=>`<tr><td style="text-align:left">${dm(e.date.slice(0,10))} · ${esc(nameOf?nameOf(e.t):e.t)}${isETF(e.t)?' <small class="mu">ETF</small>':''}</td><td>${sg(e.g)}</td></tr>`).join('')}</table></div>`:''}
+ <div class="card mu" style="font-size:12px;line-height:1.5"><b>So wird gerechnet</b><br>Abgeltungsteuer 25 % plus 5,5 % Soli${ts.kist?' plus '+ts.kist+' % Kirchensteuer':''} (${pc(R.rate)}). Quellensteuer wird bei Trading-212-Importen aus dem Länderkürzel der ISIN geschätzt (z. B. USA 15 %, Schweiz 35 %), sofern der Import keinen Brutto-Wert enthält. Aktienverluste ${ts.all?'werden vereinfacht gegen alle Erträge':'werden nur mit Aktiengewinnen'} verrechnet, Verluste aus ETFs gegen alle Erträge. Die Steuer wird anteilig auf die Zahlungen des Jahres verteilt. Prognosen nutzen die Hochrechnung des Jahres. Das ersetzt keine Steuererklärung.</div>`}
+const yearFc=()=>{const n=new Date(),y=String(n.getFullYear()),got=dvTx().filter(t=>t.date.startsWith(y)).reduce((s,t)=>s+t.amount,0),rest=forecast(12).filter(x=>x.ym.startsWith(y)).reduce((s,x)=>s+x.a,0);return {y,got,rest,tot:got+rest}};
 let QT={};try{QT=JSON.parse(localStorage.getItem('divq')||'{}')}catch(e){}
 let QS={t:0,n:0,of:0};
 const qP=t=>(QT[t]||{}).p||0,mvOf=h=>qP(h.t)>0?h.q*qP(h.t):h.cost,
@@ -167,8 +233,8 @@ const gradG=c=>{const a=c.chart.chartArea;if(!a)return 'rgba(127,207,174,.15)';c
 const PX=i=>i<8?P[i]:i<10?['#8e2b2b','#2a6479'][i-8]:`hsl(${Math.round((i*137.5)%360)},90%,62%)`,TC={},tcol=t=>TC[t]||(TC[t]=PX(Object.keys(TC).length));
 const nameOf=t=>(S.tx.find(x=>x.ticker==t&&x.name)||{}).name||'',nx=k=>addM(new Date(+k.slice(0,4),+k.slice(5)-1,1),1),dm=d=>d.slice(8,10)+'.'+d.slice(5,7)+'.'+d.slice(2,4);
 function seedC(){const s={};S.tx.filter(t=>t.type=='div'&&t.ticker).forEach(t=>s[t.ticker]=(s[t.ticker]||0)+t.amount);Object.keys(s).sort((a,b)=>s[b]-s[a]).forEach(t=>tcol(t))}
-const ST=[['dvd','Übersicht'],['dvm','Monatlich (fortl.)'],['dvy','Monatlich (pro Jahr)'],['dvc','Akkumuliert (pro Jahr)']];
-const stabs=()=>`<div class="stabs">${ST.map(([k,l])=>`<button class="${tab==k?'on':''}" onclick="tab='${k}';render()">${l}</button>`).join('')}</div>`;
+const ST=[['dvd','Übersicht'],['dvm','Monatlich (fortl.)'],['dvy','Monatlich (pro Jahr)'],['dvc','Akkumuliert (pro Jahr)'],['dtx','Steuer']];
+const stabs=()=>bnBar()+`<div class="stabs">${ST.map(([k,l])=>`<button class="${tab==k?'on':''}" onclick="tab='${k}';render()">${l}</button>`).join('')}</div>`;
 const EY=v=>v+' €',MNL=k=>MN[+k.slice(5)-1]+' '+k.slice(0,4),TT={backgroundColor:'#17181d',borderColor:'#30333a',borderWidth:1,titleColor:'#e8e8ea',bodyColor:'#c8c8cc',padding:10,boxPadding:4,usePointStyle:true,cornerRadius:8};
 const RM=matchMedia('(prefers-reduced-motion:reduce)').matches;
 function chart(id,cfg){if(ch[id])ch[id].destroy();Chart.defaults.color=getComputedStyle(document.body).color;Chart.defaults.borderColor='rgba(255,255,255,.07)';Chart.defaults.font.size=11;
@@ -178,12 +244,12 @@ function chart(id,cfg){if(ch[id])ch[id].destroy();Chart.defaults.color=getComput
  ch[id]=new Chart($('#'+id),{...cfg,options:{responsive:true,maintainAspectRatio:false,animation:anim,datasets:{line:{animations:lineA}},...cfg.options}})}
 const chk=(k,l)=>`<label><input type="checkbox" ${opt[k]?'checked':''} onchange="opt.${k}=this.checked;render()"> ${l}</label>`;
 const empty=()=>!S.tx.length&&(($('#m').innerHTML='<div class="card">Noch keine Daten. Importiere deine Trading-212-PDF/CSV oder klicke auf <b>Demo</b>.</div>'),true);
-function render(){FCC={};document.querySelectorAll('#menu [data-k]').forEach(b=>b.classList.toggle('on',b.dataset.k==tab));document.querySelectorAll('#bn [data-n]').forEach(b=>b.classList.toggle('on',b.dataset.n=='dvd'?['dvd','dvm','dvy','dvc'].includes(tab):b.dataset.n=='more'?['dck'].includes(tab):b.dataset.n=='ana'?['ana','cash','act'].includes(tab):b.dataset.n=='hold'?['hold','det'].includes(tab):b.dataset.n==tab));$('#ttl').textContent=tabs[tab];if(empty())return;({dash,dvd,dvm,dvy,dvc,cal,ana,cash,hold,dck:datachk,act,det})[tab]()}
+function render(){FCC={};TXC=null;TXM=new Map();TXW={};document.querySelectorAll('#menu [data-k]').forEach(b=>b.classList.toggle('on',b.dataset.k==tab));document.querySelectorAll('#bn [data-n]').forEach(b=>b.classList.toggle('on',b.dataset.n=='dvd'?['dvd','dvm','dvy','dvc','dtx'].includes(tab):b.dataset.n=='more'?['dck'].includes(tab):b.dataset.n=='ana'?['ana','cash','act'].includes(tab):b.dataset.n=='hold'?['hold','det'].includes(tab):b.dataset.n==tab));$('#ttl').textContent=tabs[tab];if(empty())return;({dash,dvd,dvm,dvy,dvc,dtx:dvt,cal,ana,cash,hold,dck:datachk,act,det})[tab]()}
 function costSeries(ks){const T=[...S.tx].filter(t=>['buy','sell'].includes(t.type)&&t.ticker).sort((a,b)=>a.date<b.date?-1:1),h={};let i=0,tot=0;return ks.map(k=>{while(i<T.length&&ym(T[i].date)<=k){const t=T[i++],x=h[t.ticker]||(h[t.ticker]={q:0,c:0}),b=x.c;if(t.type=='buy'){x.q+=t.qty;x.c+=t.amount}else{const a=x.q?x.c/x.q:0;x.c-=a*t.qty;x.q-=t.qty}tot+=x.c-b}return Math.max(tot,0)})}
 const PER=[['0','Heute'],['7','7T'],['30','30T'],['365','1J'],['ytd','YTD'],['max','Max']],PCT=v=>(isFinite(v)?v:0).toFixed(2).replace('.',',')+' %',pl=(v,b)=>`<span class="pl ${v>=0?'up':'dn'}">${v>=0?'↑':'↓'} ${PCT(b?Math.abs(v)/b*100:0)}</span>`;
 function perStart(){const n=new Date(),p=opt.per||'max';if(p=='max')return'0000-00-00';if(p=='ytd')return n.getFullYear()+'-01-01';return new Date(n.getTime()-(+p)*864e5).toISOString().slice(0,10)}
 function realized(){const pos={},ev=[];[...S.tx].sort((a,b)=>a.date<b.date?-1:1).forEach(t=>{if(!t.ticker)return;const p=pos[t.ticker]||(pos[t.ticker]={q:0,c:0});if(t.type=='buy'){p.q+=t.qty;p.c+=t.amount}else if(t.type=='sell'){const a=p.q?p.c/p.q:0;ev.push({date:t.date,g:t.amount-a*t.qty,t:t.ticker});p.c-=a*t.qty;p.q-=t.qty}});return ev}
-function dash(){seedC();const now=new Date(),H=holdings().filter(h=>h.q>0.0001).sort((a,b)=>b.cost-a.cost),fc=forecast(),per=opt.per||'max',dt=opt.dtab||'d',st=perStart(),divs=S.tx.filter(t=>t.type=='div'),
+function dash(){seedC();const now=new Date(),H=holdings().filter(h=>h.q>0.0001).sort((a,b)=>b.cost-a.cost),fc=forecast(),per=opt.per||'max',dt=opt.dtab||'d',st=perStart(),divs=dvTx(),
  cost=H.reduce((s,h)=>s+h.cost,0),hasQ=H.some(h=>qP(h.t)>0),mvT=H.reduce((s,h)=>s+mvOf(h),0),dP=divs.filter(t=>t.date>=st).reduce((s,t)=>s+t.amount,0),rP=realized().filter(e=>e.date>=st).reduce((s,e)=>s+e.g,0),f12=fc.reduce((s,t)=>s+t.a,0),res=dP+rP,
  etf=H.filter(h=>(S.meta[h.t]||{}).type=='ETF').length,cur=addM(now,0),first=S.tx.reduce((m,t)=>t.date<m?t.date:m,'9999-99-99').slice(0,7),
  nM={'0':6,'7':6,'30':6,'365':12}[per],s0=per=='max'?first:per=='ytd'?now.getFullYear()+'-01':addM(now,-(nM-1)),ks=[];
@@ -201,7 +267,7 @@ function dash(){seedC();const now=new Date(),H=holdings().filter(h=>h.q>0.0001).
  if(dt=='w')chart('c0',{type:'line',data:{labels:ks.map(lab),datasets:[{data:costSeries(ks),borderColor:G,backgroundColor:gradG,fill:true,tension:.35,pointRadius:0,borderWidth:2}]},options:{plugins:{legend:{display:false},tooltip:{...TT,callbacks:{label:c=>eur(c.raw)}}},scales:{y:{ticks:{callback:EY}}}}});
  else{const k2=[...ks];for(let i=1;i<=Math.max(6,11-now.getMonth());i++)k2.push(addM(now,i));
   chart('c4',{type:'bar',data:{labels:k2.map(lab),datasets:[{label:'Erhalten',data:k2.map(k=>k>cur?null:divs.filter(t=>ym(t.date)==k).reduce((s,t)=>s+t.amount,0)),backgroundColor:P[1],borderRadius:0},{label:'Prognose',data:k2.map(k=>k>cur?fc.filter(t=>t.ym==k).reduce((s,t)=>s+t.a,0):null),backgroundColor:HP,borderColor:HB,borderWidth:1,borderRadius:0}]},options:{plugins:{legend:{display:false},tooltip:{...TT,callbacks:{label:c=>c.dataset.label+': '+eur(c.raw)}}},scales:{x:{stacked:true,grid:{display:false}},y:{stacked:true,ticks:{callback:EY}}}}})}}
-function dvd(){seedC();const now=new Date(),cur=addM(now,0),y=String(now.getFullYear()),divs=S.tx.filter(t=>t.type=='div'&&t.ticker),fc=forecast(12),H=holdings().filter(h=>h.q>0.0001),cost=H.reduce((s,h)=>s+h.cost,0),
+function dvd(){seedC();const now=new Date(),cur=addM(now,0),y=String(now.getFullYear()),divs=dvTx().filter(t=>t.ticker),fc=forecast(12),H=holdings().filter(h=>h.q>0.0001),cost=H.reduce((s,h)=>s+h.cost,0),
  total=divs.reduce((s,t)=>s+t.amount,0),ytd=divs.filter(t=>t.date.startsWith(y)).reduce((s,t)=>s+t.amount,0),f12=fc.reduce((s,t)=>s+t.a,0),first=S.tx.reduce((m,t)=>t.date<m?t.date:m,'9999-99-99'),
  mths=Math.max(1,(now.getFullYear()-+first.slice(0,4))*12+now.getMonth()-(+first.slice(5,7)-1)+1),by={};divs.forEach(t=>by[t.ticker]=(by[t.ticker]||0)+t.amount);
  const top=Object.entries(by).sort((a,b)=>b[1]-a[1]).slice(0,6),next=[...fc].sort((a,b)=>a.ym<b.ym?-1:a.ym>b.ym?1:b.a-a.a).slice(0,6),k2=[];for(let i=-Math.max(5,now.getMonth());i<=Math.max(6,11-now.getMonth());i++)k2.push(addM(now,i));
@@ -231,7 +297,7 @@ function selMon(k){if(!MD||!$('#msel'))return;const y=k.slice(0,4),m=+k.slice(5)
  const rows=(fut?MD.fc.filter(x=>x.ym==k).map(x=>[x.t,x.a]):Object.keys(MD.A).map(t=>[t,MD.A[t][k]||0]).filter(r=>r[1]>0)).sort((a,b)=>b[1]-a[1]),tot=rows.reduce((s,r)=>s+r[1],0);
  $('#msel').innerHTML=`<span class="pill">${MN[m-1]} ${y}${fut?' (E)':''}</span><span class="${fut?'mu':'gr'}">${eur(tot)}</span>`;
  $('#mdet').innerHTML=rows.length?rows.map(([t,a])=>`<tr><td><span style="color:${tcol(t)}">●</span> <b>${esc(nameOf(t)||t)}</b></td><td>${eur(a)}</td></tr>`).join(''):'<tr><td class="mu">Keine Dividenden in diesem Monat</td></tr>'}
-function dvm(){seedC();const now=new Date(),y=now.getFullYear(),cur=addM(now,0),hn=Math.max(12,23-now.getMonth()),fc=forecast(hn),divs=S.tx.filter(t=>t.type=='div'&&t.ticker),first=S.tx.reduce((m,t)=>t.date<m?t.date:m,'9999-99-99'),last=addM(now,hn),ks=[],hy=opt.hy||(opt.hy={}),hist=!!opt.hist;
+function dvm(){seedC();const now=new Date(),y=now.getFullYear(),cur=addM(now,0),hn=Math.max(12,23-now.getMonth()),fc=forecast(hn),divs=dvTx().filter(t=>t.ticker),first=S.tx.reduce((m,t)=>t.date<m?t.date:m,'9999-99-99'),last=addM(now,hn),ks=[],hy=opt.hy||(opt.hy={}),hist=!!opt.hist;
  for(let k=(hist||first.slice(0,4)>=String(y)?first.slice(0,7):y+'-01');k<=last;k=nx(k))ks.push(k);
  const A={};divs.forEach(t=>{const o=A[t.ticker]||(A[t.ticker]={});o[ym(t.date)]=(o[ym(t.date)]||0)+t.amount});
  const tot=t=>Object.values(A[t]).reduce((a,b)=>a+b,0),order=Object.keys(A).sort((a,b)=>tot(b)-tot(a)),all=order.reduce((s,t)=>s+tot(t),0);MD={A,fc,cur};
@@ -251,7 +317,7 @@ function hyt(y){opt.hy=opt.hy||{};opt.hy[y]=!opt.hy[y];render()}
 function dtx(k){opt.dx=opt.dx||{};opt.dx[k]=!opt.dx[k];render()}
 function dtg(k){opt.dc=opt.dc||{};opt.dc[k]=!opt.dc[k];render()}
 function tgl(k){opt.hid=opt.hid||{};opt.hid[k]=!opt.hid[k];render()}
-function dvy(){const hid=opt.hid||(opt.hid={}),now=new Date(),y=now.getFullYear(),cm=now.getMonth()+1,divs=S.tx.filter(t=>t.type=='div'),I=[...Array(12).keys()].map(i=>i+1),mk=(Y,i)=>`${Y}-${String(i).padStart(2,'0')}`,showF=true,
+function dvy(){const hid=opt.hid||(opt.hid={}),now=new Date(),y=now.getFullYear(),cm=now.getMonth()+1,divs=dvTx(),I=[...Array(12).keys()].map(i=>i+1),mk=(Y,i)=>`${Y}-${String(i).padStart(2,'0')}`,showF=true,
  act=(Y,i)=>divs.filter(t=>ym(t.date)==mk(Y,i)).reduce((s,t)=>s+t.amount,0),est=(Y,i)=>fcList(mk(Y,i)).reduce((s,x)=>s+x.a,0),sum=f=>I.reduce((s,i)=>s+f(i),0),
  yrs=[...new Set([...divs.map(t=>+t.date.slice(0,4)),y])].filter(Y=>Y<=y).sort(),yc=Y=>Y==y?P[3]:P[[4,6,0,5][(y-Y-1)%4]],ds=[];
  yrs.forEach(Y=>{ds.push({label:''+Y,data:I.map(i=>(Y<y||i<=cm)&&!hid['Y'+Y]?act(Y,i):null),backgroundColor:yc(Y),borderWidth:0,borderRadius:3})});
@@ -266,7 +332,7 @@ function dvy(){const hid=opt.hid||(opt.hid={}),now=new Date(),y=now.getFullYear(
  tbl=`<div class="card"><div class="row" style="margin-top:0"><b>Übersicht nach Jahren</b><div class="sg2"><button class="${tq?'on':''}" onclick="opt.dq='q';render()">Q</button><button class="${tq?'':'on'}" onclick="opt.dq='m';render()">M</button></div></div><div style="overflow-x:auto"><table class="dt"><tr><th></th><th>Gesamt</th><th>Ø</th>${cols.map(c=>`<th>${c[0]}</th>`).join('')}</tr>${rowsY.map(r=>`<tr><th>${r.Y}</th><td>${eur(r.tot)}</td><td>${eur(r.avg)}</td>${r.v.map(cell).join('')}</tr>`).join('')}</table></div></div>`;
  $('#m').innerHTML=stabs()+`<div class="card"><div class="row"><span>Seit ${dm(first)}</span><b class="gr">${eur(total)}</b></div><div class="cv"><canvas id="c1"></canvas></div><div class="chips2">${chips.join('')}</div></div>${tbl}`;
  chart('c1',{type:'bar',data:{labels:MN,datasets:ds},options:{plugins:{legend:{display:false},tooltip:{...TT,callbacks:{afterBody:it=>{const c=it[0],L=c.dataset.label,f=L.includes('Prognose'),k=mk(parseInt(L),c.dataIndex+1),g={};if(f)fcList(k).forEach(x=>g[x.t]=(g[x.t]||0)+x.a);else divs.filter(t=>ym(t.date)==k).forEach(t=>g[t.ticker]=(g[t.ticker]||0)+t.amount);return Object.entries(g).sort((a,b)=>b[1]-a[1]).map(([t,a])=>`${nameOf(t)||t}: ${eur(a)}`)},label:c=>`${c.dataset.label}: ${eur(c.raw)}`}}},scales:{x:{grid:{display:false}},y:{ticks:{callback:EY}}},barPercentage:.9,categoryPercentage:.8}})}
-function dvc(){const hid=opt.hid||(opt.hid={}),now=new Date(),y=now.getFullYear(),cm=now.getMonth()+1,divs=S.tx.filter(t=>t.type=='div'),I=[...Array(12).keys()].map(i=>i+1),mk=(Y,i)=>`${Y}-${String(i).padStart(2,'0')}`,
+function dvc(){const hid=opt.hid||(opt.hid={}),now=new Date(),y=now.getFullYear(),cm=now.getMonth()+1,divs=dvTx(),I=[...Array(12).keys()].map(i=>i+1),mk=(Y,i)=>`${Y}-${String(i).padStart(2,'0')}`,
  act=(Y,i)=>divs.filter(t=>ym(t.date)==mk(Y,i)).reduce((s,t)=>s+t.amount,0),est=(Y,i)=>fcList(mk(Y,i)).reduce((s,x)=>s+x.a,0),
  yrs=[...new Set([...divs.map(t=>+t.date.slice(0,4)),y])].filter(Y=>Y<=y).sort(),yc=Y=>Y==y?P[3]:P[[4,6,0,5][(y-Y-1)%4]],FCY=FC1,ds=[],first=S.tx.reduce((m,t)=>t.date<m?t.date:m,'9999-99-99'),total=divs.reduce((s,t)=>s+t.amount,0);
  const cumA=Y=>{let c=0;return I.map(i=>(c+=act(Y,i)))},cumF=Y=>{let c=0;return I.map(i=>(c+=(Y==y&&i>cm?0:0)+(Y==y?(i<=cm?act(Y,i):est(Y,i)):est(Y,i))))};
@@ -320,7 +386,7 @@ const ink=c=>{const h=c.replace('#',''),r=parseInt(h.slice(0,2),16),g=parseInt(h
 const FM=['Januar','Februar','März','April','Mai','Juni','Juli','August','September','Oktober','November','Dezember'],FML=k=>FM[+k.slice(5)-1]+' '+k.slice(0,4);
 function calNav(d){const y=+opt.cm.slice(0,4),m=+opt.cm.slice(5);opt.cm=(opt.cv=='y')?`${y+d}-${String(m).padStart(2,'0')}`:addM(new Date(y,m-1+d,1),0);render()}
 function cal(){seedC();const now=new Date(),cur=addM(now,0),fcA=forecast(24),H=holdings(),hm={};H.forEach(h=>hm[h.t]=h);if(!opt.cm)opt.cm=cur;const cv=opt.cv||'m',cl=opt.cl||'l',cd=opt.cd||'z',Y=+opt.cm.slice(0,4),M=+opt.cm.slice(5);
- const lim=new Date(Date.now()-365*864e5).toISOString().slice(0,10),DV=S.tx.filter(x=>x.type=='div'&&x.ticker),
+ const lim=new Date(Date.now()-365*864e5).toISOString().slice(0,10),DV=dvTx().filter(x=>x.ticker),
  qAt=(t,d)=>S.tx.filter(x=>x.ticker==t&&x.date<=d&&(x.type=='buy'||x.type=='sell')).reduce((s,x)=>s+(x.type=='buy'?x.qty:-x.qty),0),
  ivOf=t=>{const m=S.meta[t]||{},n=m.freq?+m.freq:DV.filter(x=>x.ticker==t&&x.date.slice(0,10)>=lim).length;return n>=10?'Monatlich':n>=3?'Quartalsweise':n==2?'Halbjährlich':n==1?'Jährlich':'–'},
  yOf=t=>{const h=hm[t],s=DV.filter(x=>x.ticker==t&&x.date.slice(0,10)>=lim).reduce((a,x)=>a+x.amount,0);return h&&h.cost>0?s/h.cost*100:0},
@@ -386,7 +452,7 @@ function hold(){const all=holdings().filter(h=>h.q>0.0001),T=allTags();if(opt.ta
 const evm={id:'evm',afterDatasetsDraw(c){const o=c.options.plugins.evm;if(!o||!o.ev||!o.on)return;const x=c.ctx,a=c.chartArea,X=c.scales.x;x.save();x.font='10px sans-serif';x.textAlign='center';x.textBaseline='middle';o.ev.forEach(e=>{const px=X.getPixelForValue(e.x);if(px<a.left||px>a.right)return;x.strokeStyle=e.c+'99';x.lineWidth=1;x.beginPath();x.moveTo(px,a.top+14);x.lineTo(px,a.bottom);x.stroke();x.fillStyle=e.c+'55';x.beginPath();x.roundRect?x.roundRect(px-8,a.top,16,14,4):x.rect(px-8,a.top,16,14);x.fill();x.fillStyle='#fff';x.fillText(e.l,px,a.top+7.5)});x.restore()}};
 function det(){const t=opt.det,H0=holdings().filter(x=>x.q>0.0001),h=holdings().find(x=>x.t==t);if(!h){tab='hold';return render()}
  const sub=opt.dsub||'h',now=new Date(),cur=addM(now,0),m=S.meta[t]||{},fc=forecast(12).filter(x=>x.t==t).sort((a,b)=>a.ym<b.ym?-1:1),f12=fc.reduce((s,x)=>s+x.a,0),
- all=S.tx.filter(x=>x.ticker==t&&['buy','sell','div'].includes(x.type)).sort((a,b)=>a.date<b.date?-1:1),divs=all.filter(x=>x.type=='div'),trd=all.filter(x=>x.type!='div'),
+ all=S.tx.filter(x=>x.ticker==t&&['buy','sell','div'].includes(x.type)).map(dvAdj).sort((a,b)=>a.date<b.date?-1:1),divs=all.filter(x=>x.type=='div'),trd=all.filter(x=>x.type!='div'),
  dTot=divs.reduce((s,x)=>s+x.amount,0),open=h.q>0.0001,avg=open&&h.q?h.cost/h.q:0,real=realized().filter(e=>e.t==t).reduce((s,e)=>s+e.g,0),isin=(S.tx.find(x=>x.ticker==t&&x.isin)||{}).isin||'',
  lim=new Date(Date.now()-365*864e5).toISOString().slice(0,10),ttmL=divs.filter(x=>x.date.slice(0,10)>=lim),ttm=ttmL.reduce((s,x)=>s+x.amount,0),
  idx=H0.findIndex(x=>x.t==t),prv=H0[(idx-1+H0.length)%H0.length],nxt=H0[(idx+1)%H0.length],kb=(l,v,x='')=>`<div class="kpi"><small>${l}</small><b>${v}</b>${x}</div>`,
@@ -440,7 +506,7 @@ function parseCSV(txt){const R=csvRows(txt),hd=R[0].map(h=>h.trim().toLowerCase(
  return R.slice(1).map(c=>{const a=c[I.a]||'',d=iso(c[I.t]||'');if(!d)return null;let type=null;
   if(/buy|scrip|spin/i.test(a))type='buy';else if(/sell/i.test(a))type='sell';else if(/^dividend/i.test(a))type='div';else if(/interest/i.test(a))type='int';else if(/deposit/i.test(a))type='dep';else if(/withdraw/i.test(a))type='wd';if(!type)return null;
   const g=Math.abs(num(c[I.g])||0),n=Math.abs(num(c[I.nt])||0);
-  return{xid:c[I.id]||'',date:d,type,ticker:c[I.k]||'',isin:c[I.isin]||'',name:c[I.n]||'',qty:Math.abs(num(c[I.q])||0),price:(num(c[I.p])||0)/((c[I.cu]||'EUR')!='EUR'&&num(c[I.fx])>0?num(c[I.fx]):1),amount:(type=='div'||type=='int')?(n||g):g}}).filter(Boolean)}
+  return{xid:c[I.id]||'',date:d,type,ticker:c[I.k]||'',isin:c[I.isin]||'',name:c[I.n]||'',qty:Math.abs(num(c[I.q])||0),price:(num(c[I.p])||0)/((c[I.cu]||'EUR')!='EUR'&&num(c[I.fx])>0?num(c[I.fx]):1),amount:(type=='div'||type=='int')?(n||g):g,...(type=='div'&&n&&g>n+.005?{gross:g}:{})}}).filter(Boolean)}
 const EU='AT BE BG CH CZ DE DK EE ES FI FR GB GR HR HU IE IT LT LU LV NL NO PL PT RO SE SI SK'.split(' '),AS='CN HK JP KR TW SG IN MY TH ID'.split(' ');
 function autoMeta(t){if(S.meta[t.ticker]||!t.isin||!t.ticker)return;const cc=t.isin.slice(0,2);let country=cc;try{country=new Intl.DisplayNames('de',{type:'region'}).of(cc)}catch(e){}
  const etf=/etf|ishares|vanguard|xtrackers|amundi|spdr|invesco/i.test(t.name);S.meta[t.ticker]={type:etf?'ETF':'Aktie',region:etf?'Global':EU.includes(cc)?'Europa':['US','CA'].includes(cc)?'Nordamerika':AS.includes(cc)?'Asien':'Sonstige',country,sector:'',dps:0,freq:4,mo:''}}
