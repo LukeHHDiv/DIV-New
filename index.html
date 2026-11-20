@@ -647,7 +647,7 @@ async function syncHold(){const u=gw(),st=$('#wst')||{set textContent(v){toast(v
   try{const r=await fetch(`${u}/holdings?isin=${encodeURIComponent(isin)}${m.ysym?'&sym='+encodeURIComponent(m.ysym):''}`),j=await r.json();if(j.ok&&j.hold&&j.hold.length){m.hold=j.hold;m.hsec=(j.sec||[]).map(([k,v])=>[SECDE[k]||k,v]);m.ysym=m.ysym||j.sym;ok++}}catch(e){}}
  save();st.textContent=`ETF-Inhalte: ${ok} von ${H.length} ETFs aktualisiert.${ok<H.length?' Fehlende lassen sich per Datei (PDF, Excel, CSV) oder von Hand ergänzen.':''}`;if(tab=='ana'&&!$('#dg').open)render()}
 function ana(){const H=holdings().filter(h=>h.q>0.0001),D={t:'Einzelwerte',tags:'Tag',sector:'Sektor',region:'Region',country:'Land',type:'Produkttyp'};if(!D[opt.dim])opt.dim='t';
- const lt=!!opt.lt,LIM=lt&&opt.dim=='t'?9999:opt.lim||15,g={},n={},add=(k,v,c=1)=>{g[k]=(g[k]||0)+v;n[k]=(n[k]||0)+c},nk=s=>String(s||'').toUpperCase().replace(/\..*$/,'').replace(/[^A-Z0-9]/g,''),
+ const lt=!!opt.lt,LIM=opt.dim=='t'?500:opt.lim||15,g={},n={},add=(k,v,c=1)=>{g[k]=(g[k]||0)+v;n[k]=(n[k]||0)+c},nk=s=>String(s||'').toUpperCase().replace(/\..*$/,'').replace(/[^A-Z0-9]/g,''),
  etfs=H.filter(h=>isETF(h.t)),withH=etfs.filter(h=>((S.meta[h.t]||{}).hold||[]).length),withS=etfs.filter(h=>((S.meta[h.t]||{}).hsec||[]).length),direct={};
  const hasW=(m,k)=>(m[k]||[]).length,regW=m=>{if(!hasW(m,'hctry'))return null;const r={};m.hctry.forEach(x=>{const c=x[2]||CTRN[String(x[0]).toLowerCase()]||'',k=c?regOfCC(c):'Sonstige';r[k]=(r[k]||0)+(+x[1]||0)});return Object.entries(r)},
  wOf=m=>opt.dim=='sector'?m.hsec:opt.dim=='cur'?m.hcur:opt.dim=='country'?m.hctry:opt.dim=='region'?regW(m):null,
