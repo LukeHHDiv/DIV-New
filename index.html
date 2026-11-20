@@ -145,7 +145,7 @@ function delP(i){const p=PFL[i];if(PFL.length<2||!confirm('Portfolio „'+p.n+'�
  PFL.splice(i,1);if(p.id==PFC){PFC=PFL[0].id;S=ldS(PFC);ldF();opt.det=null;if(tab=='det'||tab=='act')tab='dash'}svP();drawPFD();render()}
 // ---- Tag-Filter & Ansichten ----
 let FT={tags:[],mode:'any'},VW=[],FD=null,FDL=[];ldF();
-const svF=()=>{try{localStorage.setItem(pk('ftag'),JSON.stringify(FT));localStorage.setItem(pk('views'),JSON.stringify(VW))}catch(e){}};
+const svF=()=>{try{localStorage.setItem(pk('ftag'),JSON.stringify(FT));localStorage.setItem(pk('views'),JSON.stringify(VW))}catch(e){};syT()};
 const rawTx=()=>S._raw||S.tx,Sraw=()=>S._raw?{...S,tx:S._raw,_raw:undefined}:S;
 function unF(){if(S._raw){S.tx=S._raw;delete S._raw}}
 const withRaw=f=>{if(!S._raw)return f();const a=S.tx;S.tx=S._raw;try{return f()}finally{S.tx=a}};
@@ -273,6 +273,24 @@ async function fetchQ(force){const u=gw();if(!u)return;if(navigator.onLine===fal
  if(want.length){if(n==0)warn(errs?'Der Worker ist nicht erreichbar. Es werden die zuletzt gespeicherten Kurse gezeigt.':'Es wurden keine Kurse gefunden. Es werden die zuletzt gespeicherten Kurse gezeigt.',force);else if(n<want.length)warn(`Für ${want.length-n} von ${want.length} Titeln gab es keinen Kurs.`,force)}
  if(['dash','hold','det','dvd'].includes(tab)&&!$('#dg').open)render()}
 
+// ---- Sync der Ansichten ueber den Worker (KV) ----
+let syTm=null;const syC=()=>{try{return(localStorage.getItem('sycode')||'').trim()}catch(e){return ''}},syURL=()=>gw()+'/sync?code='+encodeURIComponent(syC()),syTt=()=>{try{return+localStorage.getItem('synct')||0}catch(e){return 0}};
+const syDoc=()=>{const v={};PFL.forEach(p=>{try{v[p.n]=JSON.parse(localStorage.getItem(pk('views',p.id)))||[]}catch(e){v[p.n]=[]}});return v};
+function syT(){if(!syC()||!gw())return;try{localStorage.setItem('synct',String(Date.now()))}catch(e){}clearTimeout(syTm);syTm=setTimeout(()=>syncV(),1500)}
+async function syncV(man){const st=$('#syst'),say=t=>{if(st)st.textContent=t};
+ if(!gw()){if(man)say('Bitte zuerst oben die Worker-Adresse speichern.');return}
+ if(syC().length<8){if(man)say('Sync-Code fehlt (mindestens 8 Zeichen).');return}
+ try{say('Synchronisiere …');const r=await(await fetch(syURL())).json();if(!r.ok)throw Error(r.error||'Fehler');
+  const rem=r.data?JSON.parse(r.data):null,lt=syTt();
+  if(rem&&rem.t>lt){let n=0;PFL.forEach(p=>{const x=rem.v&&rem.v[p.n];if(Array.isArray(x)){try{localStorage.setItem(pk('views',p.id),JSON.stringify(x));n+=x.length}catch(e){}}});
+   try{localStorage.setItem('synct',String(rem.t))}catch(e){}ldF();drawFB();if(tab&&$('#m'))render();say('Ansichten vom Server übernommen ('+n+'). '+new Date().toLocaleTimeString('de-DE',{hour:'2-digit',minute:'2-digit'}))}
+  else if(!rem||lt>rem.t||(man&&lt==rem.t)){const t=lt||Date.now(),v=Object.assign({},rem&&rem.v,syDoc());
+   const w=await(await fetch(syURL(),{method:'POST',headers:{'content-type':'text/plain'},body:JSON.stringify({t,v})})).json();if(!w.ok)throw Error(w.error||'Fehler');
+   try{localStorage.setItem('synct',String(t))}catch(e){}say('Ansichten hochgeladen. '+new Date().toLocaleTimeString('de-DE',{hour:'2-digit',minute:'2-digit'}))}
+  else say('Bereits aktuell.')}
+ catch(e){say('Sync fehlgeschlagen: '+e.message+(String(e.message).includes('SYNC')?'':' (Worker neu hochgeladen und KV verbunden?)'))}}
+function saveSy(){const c=($('#syc').value||'').trim();try{localStorage.setItem('sycode',c)}catch(e){}if(c.length<8){$('#syst').textContent='Code zu kurz (mindestens 8 Zeichen).';return}syncV(1)}
+function genSy(){const a='abcdefghjkmnpqrstuvwxyz23456789';let c='';const r=new Uint32Array(14);crypto.getRandomValues(r);r.forEach((x,i)=>{c+=a[x%a.length];if(i==4||i==9)c+='-'});$('#syc').value=c}
 function saveW(){const v=$('#wu').value.trim().replace(/[\/]+$/,'');try{localStorage.setItem('divworker',v);$('#wu').value=v;$('#wst').textContent=v?'Adresse gespeichert.':'Adresse gelöscht.'}catch(e){$('#wst').textContent='Speichern nicht möglich (privater Modus?).'}}
 async function syncEv(){const u=gw(),st=$('#wst');if(!u){st.textContent='Bitte zuerst die Worker-Adresse speichern.';return}
  const H=withRaw(holdings).filter(h=>h.q>0.0001);WR={};let ok=0,i=0;
@@ -453,7 +471,10 @@ function datachk(){const K=gk(),p=K.p||'fmp',H=holdings().filter(h=>h.q>0.0001),
  $('#m').innerHTML=`<div class="card"><b>Termine automatisch abrufen</b><p class="mu">Holt Ex-Tage und Dividendenverlauf über deinen eigenen Worker (Anleitung im Chat). Danach nutzen Kalender und Prognose echte Termine.</p>
  <input id="wu" value="${esc(gw())}" placeholder="https://dein-worker.workers.dev" style="width:100%;padding:8px;border-radius:6px;border:1px solid var(--ln);background:var(--bg);color:var(--tx)">
  <p><button class="btn" onclick="saveW()">Speichern</button> <button class="btn pri" onclick="syncEv()">Termine abrufen</button> <button class="btn pri" onclick="fetchQ(1)">Kurse abrufen</button> <button class="btn pri" onclick="syncHold()">ETF-Inhalte abrufen</button> <button class="btn pri" onclick="pickPdf()">Datenblätter (PDF) laden</button> <button class="btn" onclick="showHelp()">Hilfe</button></p><div id="wst" class="gr"></div><table id="wt"></table></div>
- `+`<div class="card"><b>Datencheck</b><p class="mu">Prüft, ob dein Anbieter Dividenden für deine aktuellen Titel liefert. Der Key bleibt nur auf diesem Gerät und ist nicht im Export enthalten.</p>
+ `+`<div class="card"><b>Ansichten-Sync (Laptop ↔ iPhone)</b><p class="mu">Gleichen Code auf allen Geräten eintragen, dann gleichen sich deine gespeicherten Ansichten automatisch an. Zuordnung über den Portfolio-Namen. Der Code ist wie ein Passwort, nur wer ihn kennt, kann die Ansichten lesen.</p>
+ <input id="syc" value="${esc(syC())}" placeholder="Sync-Code, mindestens 8 Zeichen" autocapitalize="off" autocomplete="off" style="width:100%;padding:8px;border-radius:6px;border:1px solid var(--ln);background:var(--bg);color:var(--tx)">
+ <p><button class="btn" onclick="genSy()">Code erzeugen</button> <button class="btn pri" onclick="saveSy()">Speichern &amp; synchronisieren</button></p><div id="syst" class="mu" style="font-size:12px"></div></div>
+ <div class="card"><b>Datencheck</b><p class="mu">Prüft, ob dein Anbieter Dividenden für deine aktuellen Titel liefert. Der Key bleibt nur auf diesem Gerät und ist nicht im Export enthalten.</p>
  <div class="ctl seg"><span>Anbieter:</span>${b('fmp','Financial Modeling Prep')}${b('td','Twelve Data')}</div>
  <label class="mu">API-Key</label><input id="kk" type="password" autocomplete="off" value="${esc(K[p]||'')}" placeholder="Key hier einfügen" style="width:100%;padding:8px;border-radius:6px;border:1px solid var(--ln);background:var(--bg);color:var(--tx)">
  <p><button class="btn pri" id="chkb" onclick="runChk()">Prüfen</button> <button class="btn" onclick="delK()">Key löschen</button></p>
@@ -651,13 +672,13 @@ $('#demo').onclick=()=>{const r=[],T=[['AAPL','Apple','Aktie','Nordamerika','USA
   if(m==MX||m==B2)r.push({id:'b'+t+m,date:ds,type:'buy',ticker:t,name:n,qty:10+i*3,price:50+i*20,amount:(10+i*3)*(50+i*20)});const sl={AAPL:[SM(4),6],VICI:[SM(3),8],NESN:[SM(2),5],KO:[SM(5),4]}[t];if(sl&&m==sl[0]){const p=(50+i*20)*(t=='NESN'?.9:1.3);r.push({id:'s'+t+m,date:ds,type:'sell',ticker:t,name:n,qty:sl[1],price:p,amount:sl[1]*p})}if(m<MX&&m%(12/f)==0)r.push({id:'d'+t+m,date:ds,type:'div',ticker:t,name:n,qty:20,price:dps/f,amount:20*dps/f*(1+i*.1)})}});
  const ISM={AAPL:'US0378331005',KO:'US1912161007',VICI:'US9256521090',NESN:'CH0038863350',VWRL:'IE00B3RBWM25'};r.forEach(x=>x.isin=ISM[x.ticker]);
  unF();S.tx=r;save();render()};
-$('#exp').onclick=async()=>{const blob=new Blob([JSON.stringify(Sraw())],{type:'application/json'}),file=new File([blob],'tracker-backup.json',{type:'application/json'});
+$('#exp').onclick=async()=>{const blob=new Blob([JSON.stringify(Object.assign({},Sraw(),{views:VW}))],{type:'application/json'}),file=new File([blob],'tracker-backup.json',{type:'application/json'});
  if(navigator.canShare&&navigator.canShare({files:[file]})){try{await navigator.share({files:[file]});return}catch(e){if(e.name=='AbortError')return}}
  const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='tracker-backup.json';a.click()};
 $('#fj').onchange=async e=>{const f=e.target.files[0];e.target.value='';if(!f)return;try{const j=JSON.parse(await f.text());if(!Array.isArray(j.tx))throw Error('Keine gültige Sicherung');
- unF();const have=new Set(S.tx.map(key));let n=0;j.tx.forEach(t=>{if(!have.has(key(t))){S.tx.push(t);have.add(key(t));n++}});Object.entries(j.meta||{}).forEach(([k,v])=>{if(!S.meta[k])S.meta[k]=v});save();alert(n+' Buchungen übernommen.');render()}catch(x){alert('Fehler: '+x.message)}};
+ unF();const have=new Set(S.tx.map(key));let n=0;j.tx.forEach(t=>{if(!have.has(key(t))){S.tx.push(t);have.add(key(t));n++}});Object.entries(j.meta||{}).forEach(([k,v])=>{if(!S.meta[k])S.meta[k]=v});let nv=0;if(Array.isArray(j.views)){const hv=new Set(VW.map(v=>v.n));j.views.forEach(v=>{if(v&&v.n&&!hv.has(v.n)){VW.push(v);hv.add(v.n);nv++}});if(nv)svF()}save();alert(n+' Buchungen und '+nv+' Ansichten übernommen.');render()}catch(x){alert('Fehler: '+x.message)}};
 $('#clr').onclick=()=>{if(confirm('Alle Daten dieses Portfolios löschen?')){S={tx:[],meta:{}};save();render()}};
-render();fetchQ();document.addEventListener('visibilitychange',()=>{if(!document.hidden&&Date.now()-QS.t>300000)fetchQ()});
+render();fetchQ();setTimeout(()=>syncV(),1200);document.addEventListener('visibilitychange',()=>{if(!document.hidden)syncV();if(!document.hidden&&Date.now()-QS.t>300000)fetchQ()});
 try{navigator.storage&&navigator.storage.persist&&navigator.storage.persist()}catch(e){}
 if('serviceWorker' in navigator)addEventListener('load',()=>navigator.serviceWorker.register('sw.js').catch(()=>{}));
 </script></body></html>
