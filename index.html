@@ -64,6 +64,7 @@ dialog{max-height:calc(100dvh - 32px);overflow-y:auto;overscroll-behavior:contai
 td,th{padding-top:9px;padding-bottom:9px}
 dialog input[type=checkbox],.dup input{width:22px;height:22px;flex:none;margin:0;padding:0;accent-color:#44939a}dialog label:has(>input[type=checkbox]){display:flex;gap:10px;align-items:center;color:var(--tx)}
 .top{display:flex;justify-content:center;padding:6px 16px 0}#ttl{display:none}#pfb{border:0;background:none;padding:4px 12px;min-height:38px;cursor:pointer;font:inherit;font-weight:600;font-size:17px;color:var(--tx)}.fb .pf{color:var(--tx);font-weight:600}td .btn{padding:4px 8px;min-height:32px}td:last-child .btn{margin-left:2px}main{padding-top:8px}.card{overflow-x:auto}.fb{display:flex;gap:8px;overflow-x:auto;padding:10px 16px 0;scrollbar-width:none}.fb::-webkit-scrollbar{display:none}.fb::before,.fb::after{content:'';margin:auto}.fb button{flex:none;border:1px solid var(--ln);background:var(--card);color:var(--mu);border-radius:999px;padding:8px 14px;min-height:36px;font:inherit;font-size:13px;white-space:nowrap;cursor:pointer}.fb button.on{background:var(--ac);color:#fff;border-color:var(--ac)}.fb .ad{border-style:dashed}
+.wpt th,.wpt td{white-space:nowrap;padding-left:12px}.wpt .pl{white-space:nowrap;display:inline-block}
 </style></head><body>
 <div class="app"><aside id="sb"><div class="logo">Mehr</div><div id="menu">
 <a data-k="dck">Datencheck</a>
@@ -369,7 +370,7 @@ function secT(H,divs,st){const per=opt.per||'max',td=new Date().toISOString().sl
  const c2=opt.sk||'v',d2=opt.sd||-1,ar=k=>c2==k?(d2==1?' ▲':' ▼'):'',th=(l,sb,k1,k2)=>`<th><span style="cursor:pointer" onclick="secS('${k1}')">${l}${ar(k1)}</span>${sb?`<br><small class="mu" style="cursor:pointer" onclick="secS('${k2}')">${sb}${ar(k2)}</small>`:''}</th>`,
  hdr=`<tr><th style="text-align:left;cursor:pointer" onclick="secS('n')">Name${ar('n')}</th>${th('Einstieg','Preis','c','ca')}${th('Intervall Start','Startpreis','s','sp')}${th('Position','Kurs','v','p')}${th('Kursgewinn','in %','g','gp')}${th('Dividenden','in %','d','dp')}${th('Realisiert','in %','r','rp')}${th('IZF','','i','i')}</tr>`;
  return `<details open class="card" style="margin-top:12px"><summary class="sx" style="cursor:pointer;list-style:none;font-weight:600;font-size:16px">Wertpapiere <span class="mu" style="font-weight:400">· <span class="gr">↑${up}</span> <span class="neg">↓${dn}</span></span></summary>
- <div style="overflow-x:auto;margin-top:8px"><table style="min-width:840px">${hdr}${rows}
+ <div style="overflow-x:auto;margin-top:8px"><table class="wpt" style="min-width:840px;white-space:nowrap">${hdr}${rows}
  <tr style="font-weight:700;border-top:1px solid var(--ln)"><td style="text-align:left">Summe</td><td>${eur(cT)}</td><td></td><td>${eur(vT)}</td><td>${g(gT,cT)}</td><td>${mm(dT,cT)}</td><td>${rT?`<b class="${rT<0?'neg':'gr'}">${rT>0?'+':''}${eur(rT)}</b><br>${pl(rT,cT)}`:eur(0)}</td><td>${ir(irT)}</td></tr></table></div>
  <div class="mu" style="font-size:12px;margin-top:8px">Dividenden und Realisiert gelten für den gewählten Zeitraum. Intervall Start gibt es für „Heute“ und „Max“. IZF ist die auf ein Jahr hochgerechnete Rendite (interner Zinsfuß) inklusive Dividenden und erst ab 30 Tagen Haltedauer.</div></details>`}
 let HI={};try{HI=JSON.parse(localStorage.getItem('divh')||'{}')}catch(e){}
