@@ -146,7 +146,7 @@ function delP(i){const p=PFL[i];if(PFL.length<2||!confirm('Portfolio „'+p.n+'�
  PFL.splice(i,1);if(p.id==PFC){PFC=PFL[0].id;S=ldS(PFC);ldF();opt.det=null;if(tab=='det'||tab=='act')tab='dash'}svP();drawPFD();render()}
 // ---- Tag-Filter & Ansichten ----
 let FT={tags:[],mode:'any'},VW=[],FD=null,FDL=[];ldF();
-const svF=()=>{try{localStorage.setItem(pk('ftag'),JSON.stringify(FT));localStorage.setItem(pk('views'),JSON.stringify(VW))}catch(e){};syT()};
+const svF=(ns)=>{try{localStorage.setItem(pk('ftag'),JSON.stringify(FT));localStorage.setItem(pk('views'),JSON.stringify(VW))}catch(e){};if(!ns)syT()};
 const rawTx=()=>S._raw||S.tx,Sraw=()=>S._raw?{...S,tx:S._raw,_raw:undefined}:S;
 function unF(){if(S._raw){S.tx=S._raw;delete S._raw}}
 const withRaw=f=>{if(!S._raw)return f();const a=S.tx;S.tx=S._raw;try{return f()}finally{S.tx=a}};
@@ -156,7 +156,7 @@ const sameF=(a,b)=>a.mode==b.mode&&a.tags.length==b.tags.length&&a.tags.every(x=
 function drawFB(){const el=$('#fb');if(!el)return;const pb=`<button class="pf" onclick="pfDlg2()">▣ Portfolios</button>`;if(!rawTx().length){el.innerHTML=`<div class="fb">${pb}</div>`;return}
  const act=VW.findIndex(v=>sameF(v,FT)),on=FT.tags.length>0;
  el.innerHTML=`<div class="fb">${pb}<button class="${on?'':'on'}" onclick="setF(-1)">Alle</button>${VW.map((v,i)=>`<button class="${on&&act==i?'on':''}" onclick="setF(${i})">${esc(v.n)}</button>`).join('')}${on&&act<0?`<button class="on" onclick="fltDlg()">${esc(FT.tags.map(tgN).join(FT.mode=='all'?' + ':' · '))}</button>`:''}<button class="ad" onclick="fltDlg()">＋ Tags</button></div>`}
-function setF(i){if(i<0)FT={tags:[],mode:'any'};else FT={tags:[...VW[i].tags],mode:VW[i].mode||'any'};svF();render()}
+function setF(i){if(i<0)FT={tags:[],mode:'any'};else FT={tags:[...VW[i].tags],mode:VW[i].mode||'any'};svF(1);render()}
 function fltDlg(){FD={tags:[...FT.tags],mode:FT.mode};drawFD();$('#dg').showModal()}
 function drawFD(){const d=$('#dg');FDL=[...allTags(),'__none'];const n=matchT(FD.tags,FD.mode).length;
  d.innerHTML=`<h3 style="margin-top:0">Tag-Filter</h3><p class="mu" style="font-size:13px">Alle Seiten zeigen dann nur noch Titel mit diesen Tags.</p>
@@ -169,7 +169,7 @@ function drawFD(){const d=$('#dg');FDL=[...allTags(),'__none'];const n=matchT(FD
  ${VW.length?`<label>Gespeicherte Ansichten</label>${VW.map((v,i)=>`<div class="row" style="margin:4px 0"><span>${esc(v.n)} <small class="mu">${esc(v.tags.map(tgN).join(v.mode=='all'?' + ':' · '))}</small></span><span><button class="btn" onclick="vwMv(${i},-1)">↑</button> <button class="btn" onclick="vwMv(${i},1)">↓</button> <button class="btn" onclick="vwDel(${i})">✕</button></span></div>`).join('')}`:''}
  <div class="row" style="margin-top:14px"><button class="btn" onclick="$('#dg').close()">Schließen</button></div>`}
 function fdT(i){const t=FDL[i],k=FD.tags.indexOf(t);if(k<0)FD.tags.push(t);else FD.tags.splice(k,1);drawFD()}
-function fdApply(){FT={tags:[...FD.tags],mode:FD.mode};svF();$('#dg').close();render()}
+function fdApply(){FT={tags:[...FD.tags],mode:FD.mode};svF(1);$('#dg').close();render()}
 function fdSave(){const n=($('#vn').value||'').trim();if(!n)return $('#vn').focus();const v={n,tags:[...FD.tags],mode:FD.mode},i=VW.findIndex(x=>x.n==n);if(i<0)VW.push(v);else VW[i]=v;FT={tags:[...FD.tags],mode:FD.mode};svF();$('#dg').close();render()}
 function vwDel(i){VW.splice(i,1);svF();drawFD();drawFB()}
 function vwMv(i,d){const j=i+d;if(j<0||j>=VW.length)return;[VW[i],VW[j]]=[VW[j],VW[i]];svF();drawFD();drawFB()}
@@ -285,7 +285,7 @@ async function syncV(man){const st=$('#syst'),say=t=>{if(st)st.textContent=t};
   const rem=r.data?JSON.parse(r.data):null,lt=syTt();
   if(rem&&rem.t>lt){let n=0;PFL.forEach(p=>{const x=rem.v&&rem.v[p.n];if(Array.isArray(x)){try{localStorage.setItem(pk('views',p.id),JSON.stringify(x));n+=x.length}catch(e){}}});
    try{localStorage.setItem('synct',String(rem.t))}catch(e){}ldF();drawFB();if(tab&&$('#m'))render();say('Ansichten vom Server übernommen ('+n+'). '+new Date().toLocaleTimeString('de-DE',{hour:'2-digit',minute:'2-digit'}))}
-  else if(!rem||lt>rem.t||(man&&lt==rem.t)){const t=lt||Date.now(),v=Object.assign({},rem&&rem.v,syDoc());
+  else if(!rem||lt>rem.t||(man&&lt==rem.t)){const t=lt||Date.now(),v=Object.assign({},rem&&rem.v),dl=syDoc();Object.keys(dl).forEach(k=>{if(dl[k].length||!(v[k]&&v[k].length))v[k]=dl[k]});
    const w=await(await fetch(syURL(),{method:'POST',headers:{'content-type':'text/plain'},body:JSON.stringify({t,v})})).json();if(!w.ok)throw Error(w.error||'Fehler');
    try{localStorage.setItem('synct',String(t))}catch(e){}say('Ansichten hochgeladen. '+new Date().toLocaleTimeString('de-DE',{hour:'2-digit',minute:'2-digit'}))}
   else say('Bereits aktuell.')}
@@ -414,12 +414,12 @@ function crkSplit(by){const g={},n={},add=(k,v,c)=>{g[k]=(g[k]||0)+v;n[k]=(n[k]|
   if(isETF(t)&&(m.hold||[]).length){let s=0;m.hold.forEach(x=>{const w=Math.min(+x.w||0,100-s);if(w<=0)return;s+=w;add(cn({n:x.n,s:x.s}),v*w/100,1)});if(s<100)add('Sonstige (ETF-Reste)',v*(100-s)/100,0)}
   else add(cn({n:nameOf(t)||t,s:m.ysym||m.sym||t}),v,1)});
  return Object.entries(g).filter(x=>x[1]>0).sort((a,b)=>(a[0].startsWith('Sonstige')-b[0].startsWith('Sonstige'))||b[1]-a[1]).map(([k,v])=>[k,v,n[k]])}
-function dvDonut(by){const el=$('#dvdc');if(!el)return;const lt=!!opt.ltd;
+function dvDonut(by,lt){const el=$('#dvdc');if(!el)return;lt=!!lt;
  const e=lt?crkSplit(by):Object.entries(by).filter(x=>x[1]>0).sort((a,b)=>b[1]-a[1]).map(([t,v])=>[nameOf(t)||t,v,1]);
  const T=e.reduce((s,x)=>s+x[1],0)||1,pc=e.map(x=>x[1]/T*100),col=e.map((x,i)=>x[0].startsWith('Sonstige')?'#575a63':PX(i)),
  E=holdings().filter(h=>h.q>0.0001&&isETF(h.t)),nD=E.filter(h=>((S.meta[h.t]||{}).hold||[]).length).length;
  if(!e.length){el.style.display='none';return}
- el.innerHTML=`<div class="row" style="margin:0 0 6px"><h3 style="margin:0">Dividenden nach ${lt?'Einzelposition':'Titel'}</h3><div class="sg2"><button class="${lt?'on':''}" onclick="opt.ltd=!opt.ltd;render()">Crack ETF</button></div></div>
+ el.innerHTML=`<div class="row" style="margin:0 0 6px"><h3 style="margin:0">Dividenden nach ${lt?'Einzelposition':'Titel'}</h3></div>
  ${lt?`<div class="mu" style="font-size:12px;margin-bottom:6px">${nD} von ${E.length} ETFs aufgebrochen. Die ETF-Dividende wird nach dem Gewicht der Positionen aus dem Datenblatt verteilt, nicht nach deren tatsächlicher Ausschüttung.${nD<E.length?' Für die übrigen ETFs fehlen Datenblätter (Analyse → Datenblätter laden).':''}</div>`:''}
  <div class="gw" style="margin-top:0"><div class="cv" style="height:300px"><canvas id="c9"></canvas></div><div style="position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;pointer-events:none"><span style="font-size:14px">Erhalten</span><b style="font-size:19px;margin-top:4px">${eur(T)}</b></div></div>
  <div style="margin-top:12px">${e.map(([k,v,n],i)=>`<div class="row" style="margin-top:${i?12:0}px"><span>${esc(k)}${n>1?` <span class="mu">(${n})</span>`:''}</span><span>${PCT(pc[i])} <span class="mu">· ${eur(v)}</span></span></div><div class="trk"><i style="width:${pc[i]}%;background:${col[i]}"></i></div>`).join('')}</div>`;
@@ -447,9 +447,8 @@ function dvd(){seedC();const now=new Date(),cur=addM(now,0),y=String(now.getFull
  ${sec('up','Angekündigte Dividenden',moreG('up',up)+fcNote())}${sec('pa','Letzte Auszahlungen',moreG('pa',pa))}
  ${sec('ti','Dividendentitel',thead+(titles.map(trow).join('')||'<div class="mu">Keine aktiven Titel mit Dividenden</div>'))}
  ${sold.length?sec('so','Verkaufte Titel ('+sold.length+')',thead+sold.map(trow).join('')):''}
- <div class="card" id="dvdc" style="position:relative"></div>
 <div class="card"><h3>Größte Zahler</h3>${top.map(([t,v])=>`<div class="row"><span><span style="color:${tcol(t)}">●</span> <b>${esc(nameOf(t)||t)}</b></span><span>${eur(v)} <small class="mu">${PCT(total?v/total*100:0)}</small></span></div><div class="bar"><i style="width:${total?v/total*100:0}%;background:${tcol(t)}"></i></div>`).join('')||'<div class="mu">Noch keine Dividenden</div>'}</div>`;
-dvDonut(by);chart('c1',{type:'bar',data:{labels:k2.map(k=>MN[+k.slice(5)-1]),datasets:[{label:'Erhalten',data:k2.map(k=>k>cur?null:divs.filter(t=>ym(t.date)==k).reduce((s,t)=>s+t.amount,0)),backgroundColor:P[1],borderRadius:0},{label:'Prognose',data:k2.map(k=>k>cur?fc.filter(t=>t.ym==k).reduce((s,t)=>s+t.a,0):null),backgroundColor:HP,borderColor:HB,borderWidth:1,borderRadius:0}]},options:{plugins:{legend:{display:false},tooltip:{...TT,callbacks:{label:c=>c.dataset.label+': '+eur(c.raw)}}},scales:{x:{stacked:true,grid:{display:false}},y:{stacked:true,ticks:{callback:EY}}}}})}
+chart('c1',{type:'bar',data:{labels:k2.map(k=>MN[+k.slice(5)-1]),datasets:[{label:'Erhalten',data:k2.map(k=>k>cur?null:divs.filter(t=>ym(t.date)==k).reduce((s,t)=>s+t.amount,0)),backgroundColor:P[1],borderRadius:0},{label:'Prognose',data:k2.map(k=>k>cur?fc.filter(t=>t.ym==k).reduce((s,t)=>s+t.a,0):null),backgroundColor:HP,borderColor:HB,borderWidth:1,borderRadius:0}]},options:{plugins:{legend:{display:false},tooltip:{...TT,callbacks:{label:c=>c.dataset.label+': '+eur(c.raw)}}},scales:{x:{stacked:true,grid:{display:false}},y:{stacked:true,ticks:{callback:EY}}}}})}
 let MD=null;
 function selMon(k){if(!MD||!$('#msel'))return;const y=k.slice(0,4),m=+k.slice(5),fut=k>MD.cur;
  const rows=(fut?MD.fc.filter(x=>x.ym==k).map(x=>[x.t,x.a]):Object.keys(MD.A).map(t=>[t,MD.A[t][k]||0]).filter(r=>r[1]>0)).sort((a,b)=>b[1]-a[1]),tot=rows.reduce((s,r)=>s+r[1],0);
