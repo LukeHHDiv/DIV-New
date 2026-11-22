@@ -620,6 +620,8 @@ function cal(){seedC();const now=new Date(),cur=addM(now,0),fcA=forecast(24),H=h
  $('#m').innerHTML=`<div class="c2seg"><button class="${cv=='m'?'on':''}" onclick="opt.cv='m';render()">Monat</button><button class="${cv=='y'?'on':''}" onclick="opt.cv='y';render()">Jahr</button></div>
  <div class="c2chs"><button onclick="fltDlg()">Ansichten</button><button onclick="opt.cac=({'':'Aktie',Aktie:'ETF',ETF:''})[opt.cac||''];render()">${acL}</button><button onclick="opt.cd='${cd=='x'?'z':'x'}';render()">${cd=='x'?'Ex-Tag':'Zahltag'}</button></div>
  ${cv=='y'?yview():mview()}`}
+(()=>{let sx=0,sy=0,ok=false;document.addEventListener('touchstart',e=>{const t=e.touches[0];sx=t.clientX;sy=t.clientY;ok=tab=='cal'&&(opt.cv||'m')=='m'&&e.touches.length==1&&!e.target.closest('.c2chs,#dg,dialog,.fb')},{passive:true});
+document.addEventListener('touchend',e=>{if(!ok)return;ok=false;const t=e.changedTouches[0],dx=t.clientX-sx,dy=t.clientY-sy;if(Math.abs(dx)>60&&Math.abs(dx)>Math.abs(dy)*1.6&&tab=='cal')calNav(dx<0?1:-1)},{passive:true})})();
 function calGo(s){const e=document.getElementById('cd-'+s);if(e)e.scrollIntoView({behavior:'smooth',block:'start'})}
 const pctlab={id:'pctlab',afterDatasetsDraw(c){const o=c.options.plugins.pctlab;if(!o)return;const m=c.getDatasetMeta(0),x=c.ctx;x.save();x.font='600 11px sans-serif';x.textAlign='center';x.textBaseline='middle';
  m.data.forEach((el,i)=>{const v=o.pc[i];if(v<2.4)return;const a=(el.startAngle+el.endAngle)/2,r=el.outerRadius-1,px=el.x+Math.cos(a)*r,py=el.y+Math.sin(a)*r,t=v.toFixed(2).replace('.',',')+'%',w=x.measureText(t).width+14;
