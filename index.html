@@ -860,7 +860,7 @@ function ptype(t){const m=S.meta[t]||{},nm=(nameOf(t)||t)+' '+(m.hold||[]).slice
  return{main,label:det?main+' · '+det:main}}
 function secOf(t){const m=S.meta[t]||{};if(isETF(t)){const hs=(m.hsec||[]);if(hs.length){const r={};let s=0;hs.forEach(x=>{const k=secN(x[0])||'Unbekannt',w=+x[1]||0;r[k]=(r[k]||0)+w;s+=w});if(s<99.5)r['Nicht zugeordnet (ETF)']=100-s;return Object.entries(r)}const p=ptype(t).main;return[[p=='Aktien-ETF'?'ETF ohne Sektordaten':p.replace('-ETF','').replace('-ETC','').replace('-ETN',''),100]]}
  return[[secN(m.sector)||'Unbekannt',100]]}
-function ana(){const H=holdings().filter(h=>h.q>0.0001),D={t:'Einzelwerte',tags:'Tag',sector:'Sektor',ind:'Branche',region:'Region',country:'Land',type:'Produkttyp'};if(!D[opt.dim])opt.dim='t';
+function ana(){const H=holdings().filter(h=>h.q>0.0001),D={t:'Einzelwerte',tags:'Tag',sector:'Sektor',region:'Region',country:'Land',type:'Produkttyp'};if(!D[opt.dim])opt.dim='t';
  const lt=!!opt.lt,LIM=opt.dim=='t'?500:opt.lim||15,g={},n={},add=(k,v,c=1)=>{g[k]=(g[k]||0)+v;n[k]=(n[k]||0)+c},nk=s=>String(s||'').toUpperCase().replace(/\..*$/,'').replace(/[^A-Z0-9]/g,''),
  etfs=H.filter(h=>isETF(h.t)),withH=etfs.filter(h=>((S.meta[h.t]||{}).hold||[]).length),withS=etfs.filter(h=>((S.meta[h.t]||{}).hsec||[]).length),direct={};
  const hasW=(m,k)=>(m[k]||[]).length,regW=m=>{if(!hasW(m,'hctry'))return null;const r={};m.hctry.forEach(x=>{const c=x[2]||CTRN[String(x[0]).toLowerCase()]||'',k=c?regOfCC(c):'Sonstige';r[k]=(r[k]||0)+(+x[1]||0)});return Object.entries(r)},
