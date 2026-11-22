@@ -341,7 +341,11 @@ function syTM(){if(!syC()||!gw())return;clearTimeout(syMm);syMm=setTimeout(()=>s
 async function syncM(man){const st=$('#syst'),say=t=>{if(st&&man)st.textContent=t};if(!gw()||syC().length<8)return;
  try{unF();let U={},SN={},XS={};try{U=JSON.parse(localStorage.getItem('metau')||'{}');SN=JSON.parse(localStorage.getItem('metasn')||'{}');XS=JSON.parse(localStorage.getItem('txsn')||'{}')}catch(e){}
   const r=await(await fetch(syURL())).json();if(!r.ok)throw Error(r.error||'Fehler');const doc=r.data?JSON.parse(r.data):{t:0,v:{}},M=doc.m||{},XD=doc.x||{};let xp=0,xs=0;let pulled=0,pushed=0,chg=false;
-  PFL.forEach(p=>{const cur=p.id==PFC,D=cur?Sraw():mkey(p.id),loc=D.meta||(D.meta={}),rem=M[p.n]||(M[p.n]={});let dirty=false;
+  PFL.forEach(p=>{
+  {const names=new Set([...Object.keys(XD),...Object.keys(M)]);names.forEach(n=>{if(PFL.some(p=>p.n==n))return;const nx=(XD[n]&&Object.keys(XD[n].tx||{}).length)||0,nm=Object.keys(M[n]||{}).length;if(!nx&&!nm)return;
+   const emp=PFL.filter(p=>{const D=p.id==PFC?Sraw():mkey(p.id);return !(D.tx||[]).length&&!Object.keys(D.meta||{}).length});
+   if(PFL.length==1&&emp.length==1){emp[0].n=n}else{const id='p'+Date.now().toString(36)+Math.random().toString(36).slice(2,4);PFL.push({id,n});try{localStorage.setItem(pk('dt',id),JSON.stringify({tx:[],meta:{}}))}catch(e){}}
+   svP();if(typeof drawPF=='function')drawPF();if(typeof drawFB=='function')drawFB()})}const cur=p.id==PFC,D=cur?Sraw():mkey(p.id),loc=D.meta||(D.meta={}),rem=M[p.n]||(M[p.n]={});let dirty=false;
    {const X=XD[p.n]||(XD[p.n]={tx:{},del:{}}),tm=X.tx||(X.tx={}),dl=X.del||(X.del={}),L=new Map((D.tx||[]).map(t=>[key(t),t])),prev=XS[p.id];
     if(prev)prev.forEach(k=>{if(!L.has(k)&&!dl[k]){dl[k]=Date.now();delete tm[k];chg=true;xs++}});
     L.forEach((t,k)=>{const wk=prev&&prev.includes(k);if(dl[k]){if(wk){L.delete(k);dirty=true;xp++}else{delete dl[k];tm[k]=t;chg=true;xs++}}else if(!tm[k]){tm[k]=t;chg=true;xs++}});
@@ -356,7 +360,7 @@ async function syncM(man){const st=$('#syst'),say=t=>{if(st&&man)st.textContent=
   if(chg){doc.m=M;doc.x=XD;const body=JSON.stringify(doc);if(body.length>1900000){say('Stammdaten zu groß für den Sync ('+Math.round(body.length/1e6*10)/10+' MB).');return}
    const w=await(await fetch(syURL(),{method:'POST',headers:{'content-type':'text/plain'},body})).json();if(!w.ok)throw Error(w.error||'Fehler')}
   if((pulled||xp)&&$('#m')&&!$('#dg').open)render();
-  say('Stammdaten: '+pulled+' empfangen, '+pushed+' gesendet · Buchungen: '+xp+' empfangen, '+xs+' gesendet'+(pushed||xs?'. Der Server zeigt neue Daten bis zu 1 Minute verzögert, dann auf dem anderen Gerät erneut tippen. ':'. ')+new Date().toLocaleTimeString('de-DE',{hour:'2-digit',minute:'2-digit'})+' · App-Version 23-22-c')}
+  say('Server: '+(Object.keys(XD).map(n=>n+' ('+Object.keys(XD[n].tx||{}).length+')').join(', ')||'leer')+' · Dieses Gerät: '+PFL.map(p=>p.n).join(', ')+'. Stammdaten: '+pulled+' empfangen, '+pushed+' gesendet · Buchungen: '+xp+' empfangen, '+xs+' gesendet'+(pushed||xs?'. Der Server zeigt neue Daten bis zu 1 Minute verzögert, dann auf dem anderen Gerät erneut tippen. ':'. ')+new Date().toLocaleTimeString('de-DE',{hour:'2-digit',minute:'2-digit'})+' · App-Version 23-23-a')}
  catch(e){say('Stammdaten-Sync fehlgeschlagen: '+e.message)}}
 function saveSy(){const c=($('#syc').value||'').trim();try{localStorage.setItem('sycode',c)}catch(e){}if(c.length<8){$('#syst').textContent='Code zu kurz (mindestens 8 Zeichen).';return}syncV(1)}
 function genSy(){const a='abcdefghjkmnpqrstuvwxyz23456789';let c='';const r=new Uint32Array(14);crypto.getRandomValues(r);r.forEach((x,i)=>{c+=a[x%a.length];if(i==4||i==9)c+='-'});$('#syc').value=c}
