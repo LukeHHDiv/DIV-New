@@ -356,7 +356,7 @@ async function syncM(man){const st=$('#syst'),say=t=>{if(st&&man)st.textContent=
   if(chg){doc.m=M;doc.x=XD;const body=JSON.stringify(doc);if(body.length>1900000){say('Stammdaten zu groß für den Sync ('+Math.round(body.length/1e6*10)/10+' MB).');return}
    const w=await(await fetch(syURL(),{method:'POST',headers:{'content-type':'text/plain'},body})).json();if(!w.ok)throw Error(w.error||'Fehler')}
   if((pulled||xp)&&$('#m')&&!$('#dg').open)render();
-  say('Stammdaten: '+pulled+' empfangen, '+pushed+' gesendet · Buchungen: '+xp+' empfangen, '+xs+' gesendet. '+new Date().toLocaleTimeString('de-DE',{hour:'2-digit',minute:'2-digit'}))}
+  say('Stammdaten: '+pulled+' empfangen, '+pushed+' gesendet · Buchungen: '+xp+' empfangen, '+xs+' gesendet'+(pushed||xs?'. Der Server zeigt neue Daten bis zu 1 Minute verzögert, dann auf dem anderen Gerät erneut tippen. ':'. ')+new Date().toLocaleTimeString('de-DE',{hour:'2-digit',minute:'2-digit'}))}
  catch(e){say('Stammdaten-Sync fehlgeschlagen: '+e.message)}}
 function saveSy(){const c=($('#syc').value||'').trim();try{localStorage.setItem('sycode',c)}catch(e){}if(c.length<8){$('#syst').textContent='Code zu kurz (mindestens 8 Zeichen).';return}syncV(1)}
 function genSy(){const a='abcdefghjkmnpqrstuvwxyz23456789';let c='';const r=new Uint32Array(14);crypto.getRandomValues(r);r.forEach((x,i)=>{c+=a[x%a.length];if(i==4||i==9)c+='-'});$('#syc').value=c}
