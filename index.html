@@ -391,7 +391,7 @@ const mEnds=()=>{const n=new Date(),f=rawTx().reduce((m,t)=>t.date<m?t.date:m,'9
 async function fetchH(){const u=gw();if(!u||navigator.onLine===false)return;const today=fmtD(new Date()),me=mEnds(),ds=[...new Set([...Object.values(perDates()),...me])].join(',');
  const H=withRaw(holdings).filter(h=>h.q>0.0001),want=H.filter(h=>{const hi=HI[h.t];return !(hi&&hi.d==today&&Object.keys(hi.r||{}).length>=2&&me.every(d=>d in (hi.r||{})))&&rawTx().some(x=>x.ticker==h.t&&x.isin)});if(!want.length)return;
  await Promise.all(want.map(async h=>{const isin=(rawTx().find(x=>x.ticker==h.t&&x.isin)||{}).isin,q=QT[h.t]||{};
-  try{const j=await(await fetch(`${u}/hist?isin=${encodeURIComponent(isin)}&d=${ds}${q.sym?'&sym='+encodeURIComponent(q.sym):''}`)).json();if(j.ok&&j.r)HI[h.t]={d:today,r:j.r}}catch(e){}}));
+  try{const all=ds.split(','),ck=[];for(let i=0;i<all.length;i+=8)ck.push(all.slice(i,i+8).join(','));const rs=await Promise.all(ck.map(async c=>{try{const j=await(await fetch(`${u}/hist?isin=${encodeURIComponent(isin)}&d=${c}${q.sym?'&sym='+encodeURIComponent(q.sym):''}`)).json();return j.ok&&j.r?j.r:null}catch(e){return null}})),r={};let ok=0;rs.forEach(x=>{if(x){Object.assign(r,x);ok++}});if(ok)HI[h.t]={d:today,r}}catch(e){}}));
  try{localStorage.setItem('divh',JSON.stringify(HI))}catch(e){}
  if(tab=='dash'&&!$('#dg').open)render()}
 function perCalc(per,H,st){if(per=='max'||per=='0')return null;const anchor=per=='ytd'?(new Date().getFullYear()-1)+'-12-31':st,inH=new Set(H.map(h=>h.t));let vS=0,vN=0,buys=0,sells=0,rl=0,miss=0,n=0;
