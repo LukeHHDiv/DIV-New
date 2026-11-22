@@ -75,7 +75,7 @@ dialog input[type=checkbox],.dup input{width:22px;height:22px;flex:none;margin:0
 .c2a{display:flex;flex-direction:column;align-items:flex-end;gap:6px;flex:none}.c2a .bd{border:1px solid var(--ln);color:var(--mu);border-radius:6px;padding:2px 8px;font-size:13px}.c2m{display:flex;align-items:center;gap:8px;white-space:nowrap}
 .c2p{background:rgba(127,207,174,.12);border:1px solid rgba(127,207,174,.45);color:var(--sg);border-radius:6px;padding:1px 8px;font-size:14px;white-space:nowrap}.c2n2{background:rgba(220,90,70,.12);border:1px solid rgba(220,90,70,.45);color:#e0735f;border-radius:6px;padding:1px 8px;font-size:14px}
 .c2y{background:var(--card);border-radius:16px;padding:16px;margin:12px 0}.c2y summary{display:flex;justify-content:space-between;align-items:center;cursor:pointer;list-style:none}.c2y summary::-webkit-details-marker{display:none}.c2cmp{margin:12px 0 4px;display:flex;gap:10px;align-items:center;flex-wrap:wrap}
-.c2mr{display:flex;align-items:center;gap:10px;padding:14px 0;border-top:1px solid var(--ln);cursor:pointer}.c2mr:first-of-type{margin-top:8px}.c2mn{font-weight:600;font-size:18px;width:96px;flex:none}.c2av{flex:1;display:flex;align-items:center;padding-left:10px}.c2av small{margin-left:6px}
+.c2mr{display:flex;align-items:center;gap:10px;padding:14px 0;border-top:1px solid var(--ln);cursor:pointer}.c2mr:first-of-type{margin-top:8px}.c2mn{font-weight:600;font-size:17px;width:88px;flex:none}.c2av{flex:1;min-width:0;display:flex;align-items:center;padding-left:4px;overflow:hidden}.c2mr b{flex:none;font-size:18px!important;white-space:nowrap}.c2av small{margin-left:6px}
 </style></head><body>
 <div class="app"><aside id="sb"><div class="logo">Mehr</div><div id="menu">
 <a data-k="dck">Datencheck</a>
@@ -590,12 +590,12 @@ function cal(){seedC();const now=new Date(),cur=addM(now,0),fcA=forecast(24),H=h
  const yview=()=>{const ys=DV.map(x=>+x.date.slice(0,4)),y0=Math.min(Y,...(ys.length?ys:[Y])),y1=Math.max(Y,now.getFullYear()+1),yt=yy=>[...Array(12).keys()].reduce((s,i)=>s+sum(itm(ymd(yy,i+1,1).slice(0,7))),0);let h='';
   for(let yy=y1;yy>=y0;yy--){const tot=yt(yy),prev=yt(yy-1),pc=prev>0?(tot/prev-1)*100:null;
    const rows=[...Array(12).keys()].map(i=>{const k=ymd(yy,i+1,1).slice(0,7),it=itm(k),by={};it.forEach(x=>by[x.t]=(by[x.t]||0)+x.a);const T=Object.entries(by).sort((a,b)=>b[1]-a[1]).map(x=>x[0]);
-    return `<div class="c2mr" onclick="opt.cm='${k}';opt.cv='m';render()"><span class="c2mn">${MFULL[i]}</span><span class="c2av">${T.slice(0,4).map((t,j)=>av(t,40,j)).join('')}${T.length>4?'<small class="mu">…</small>':''}</span><b class="${it.length?'gr':'mu'}" style="font-size:19px">${it.length?eur(sum(it)):'–'}</b></div>`}).join('');
+    return `<div class="c2mr" onclick="opt.cm='${k}';opt.cv='m';render()"><span class="c2mn">${MFULL[i]}</span><span class="c2av">${T.slice(0,3).map((t,j)=>av(t,34,j)).join('')}${T.length>3?'<small class="mu">…</small>':''}</span><b class="${it.length?'gr':'mu'}" style="font-size:19px">${it.length?eur(sum(it)):'–'}</b></div>`}).join('');
    h+=`<details class="c2y"${yy==Y?' open':''}><summary><span class="c2t">${yy}</span><b class="gr" style="font-size:26px">${eur(tot)}</b></summary>${pc!=null?`<div class="c2cmp"><span class="${pc>=0?'c2p':'c2n2'}">${pc>=0?'↑':'↓'} ${PCT(Math.abs(pc))}</span> <span class="mu">im Vergleich zu ${eur(prev)} von ${yy-1}</span></div>`:''}${rows}</details>`}
   return h};
  const acL=opt.cac=='Aktie'?'Nur Aktien':opt.cac=='ETF'?'Nur ETFs':'Alle Assetklassen';
  $('#m').innerHTML=`<div class="c2seg"><button class="${cv=='m'?'on':''}" onclick="opt.cv='m';render()">Monat</button><button class="${cv=='y'?'on':''}" onclick="opt.cv='y';render()">Jahr</button></div>
- <div class="c2chs"><button onclick="pfDlg2()">Portfolios</button><button onclick="fltDlg()">Ansichten</button><button onclick="opt.cac=({'':'Aktie',Aktie:'ETF',ETF:''})[opt.cac||''];render()">${acL}</button><button onclick="opt.cd='${cd=='x'?'z':'x'}';render()">${cd=='x'?'Ex-Tag':'Zahltag'}</button></div>
+ <div class="c2chs"><button onclick="fltDlg()">Ansichten</button><button onclick="opt.cac=({'':'Aktie',Aktie:'ETF',ETF:''})[opt.cac||''];render()">${acL}</button><button onclick="opt.cd='${cd=='x'?'z':'x'}';render()">${cd=='x'?'Ex-Tag':'Zahltag'}</button></div>
  ${cv=='y'?yview():mview()}`}
 function calGo(s){const e=document.getElementById('cd-'+s);if(e)e.scrollIntoView({behavior:'smooth',block:'start'})}
 const pctlab={id:'pctlab',afterDatasetsDraw(c){const o=c.options.plugins.pctlab;if(!o)return;const m=c.getDatasetMeta(0),x=c.ctx;x.save();x.font='600 11px sans-serif';x.textAlign='center';x.textBaseline='middle';
