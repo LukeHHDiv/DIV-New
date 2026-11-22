@@ -132,7 +132,7 @@ ldS=id=>{try{return JSON.parse(localStorage.getItem(pk('dt',id)))||{tx:[],meta:{
 ldF=()=>{try{FT=JSON.parse(localStorage.getItem(pk('ftag')))||{tags:[],mode:'any'}}catch(e){FT={tags:[],mode:'any'}}try{VW=JSON.parse(localStorage.getItem(pk('views')))||[]}catch(e){VW=[]}};
 let S=ldS(PFC);
 let tab='dash',opt={act:true,fc:true,cum:true,dim:'t',tag:'',per:'max',dtab:'d'},ch={};
-const save=()=>{try{localStorage.setItem(pk('dt'),JSON.stringify(Sraw()))}catch(e){}};
+const save=()=>{try{localStorage.setItem(pk('dt'),JSON.stringify(Sraw()))}catch(e){}if(typeof syTM=='function')syTM()};
 const MN=['Jan','Feb','Mär','Apr','Mai','Jun','Jul','Aug','Sep','Okt','Nov','Dez'];
 const tabs={dash:'Dashboard',dvd:'Dividenden · Übersicht',dvm:'Dividenden · Monatlich fortlaufend',dvy:'Dividenden · Monatlich pro Jahr',dvc:'Dividenden · Akkumuliert pro Jahr',dtx:'Dividenden · Steuer',cal:'Dividendenkalender',ana:'Analyse',cash:'Kapitalfluss',ovl:'ETF-Vergleich',hold:'Holdings',dck:'Datencheck',act:'Aktivitäten',det:'Details'};
 $('#menu').onclick=e=>{const k=e.target.closest('[data-k]');if(k){tab=k.dataset.k;$('#sb').classList.remove('open');render()}};$('#bn').onclick=e=>{const b=e.target.closest('[data-n]');if(!b)return;tab=b.dataset.n;if(tab=='dash')opt.dtab='d';$('#sb').classList.remove('open');render()};
@@ -319,7 +319,8 @@ async function fetchQ(force){const u=gw();if(!u)return;if(navigator.onLine===fal
 let syTm=null;const syC=()=>{try{return(localStorage.getItem('sycode')||'').trim()}catch(e){return ''}},syURL=()=>gw()+'/sync?code='+encodeURIComponent(syC()),syTt=()=>{try{return+localStorage.getItem('synct')||0}catch(e){return 0}};
 const syDoc=()=>{const v={};PFL.forEach(p=>{try{v[p.n]=JSON.parse(localStorage.getItem(pk('views',p.id)))||[]}catch(e){v[p.n]=[]}});return v};
 function syT(){if(!syC()||!gw())return;try{localStorage.setItem('synct',String(Date.now()))}catch(e){}clearTimeout(syTm);syTm=setTimeout(()=>syncV(),1500)}
-async function syncV(man){const st=$('#syst'),say=t=>{if(st)st.textContent=t};
+async function syncV(man){await syncV0(man);await syncM(man)}
+async function syncV0(man){const st=$('#syst'),say=t=>{if(st)st.textContent=t};
  if(!gw()){if(man)say('Bitte zuerst oben die Worker-Adresse speichern.');return}
  if(syC().length<8){if(man)say('Sync-Code fehlt (mindestens 8 Zeichen).');return}
  try{say('Synchronisiere …');const r=await(await fetch(syURL())).json();if(!r.ok)throw Error(r.error||'Fehler');
@@ -327,10 +328,35 @@ async function syncV(man){const st=$('#syst'),say=t=>{if(st)st.textContent=t};
   if(rem&&rem.t>lt){let n=0;PFL.forEach(p=>{const x=rem.v&&rem.v[p.n];if(Array.isArray(x)){try{localStorage.setItem(pk('views',p.id),JSON.stringify(x));n+=x.length}catch(e){}}});
    try{localStorage.setItem('synct',String(rem.t))}catch(e){}ldF();drawFB();if(tab&&$('#m'))render();say('Ansichten vom Server übernommen ('+n+'). '+new Date().toLocaleTimeString('de-DE',{hour:'2-digit',minute:'2-digit'}))}
   else if(!rem||lt>rem.t||(man&&lt==rem.t)){const t=lt||Date.now(),v=Object.assign({},rem&&rem.v),dl=syDoc();Object.keys(dl).forEach(k=>{if(dl[k].length||!(v[k]&&v[k].length))v[k]=dl[k]});
-   const w=await(await fetch(syURL(),{method:'POST',headers:{'content-type':'text/plain'},body:JSON.stringify({t,v})})).json();if(!w.ok)throw Error(w.error||'Fehler');
+   const w=await(await fetch(syURL(),{method:'POST',headers:{'content-type':'text/plain'},body:JSON.stringify({t,v,m:rem&&rem.m})})).json();if(!w.ok)throw Error(w.error||'Fehler');
    try{localStorage.setItem('synct',String(t))}catch(e){}say('Ansichten hochgeladen. '+new Date().toLocaleTimeString('de-DE',{hour:'2-digit',minute:'2-digit'}))}
   else say('Bereits aktuell.')}
  catch(e){say('Sync fehlgeschlagen: '+e.message+(String(e.message).includes('SYNC')?'':' (Worker neu hochgeladen und KV verbunden?)'))}}
+
+// ---- Sync der Stammdaten (Meta) ----
+let syMm=null;
+const mkey=id=>{try{return JSON.parse(localStorage.getItem(pk('dt',id)))||{tx:[],meta:{}}}catch(e){return{tx:[],meta:{}}}};
+function syTM(){if(!syC()||!gw())return;clearTimeout(syMm);syMm=setTimeout(()=>syncM(),2500)}
+async function syncM(man){const st=$('#syst'),say=t=>{if(st&&man)st.textContent=t};if(!gw()||syC().length<8)return;
+ try{unF();let U={},SN={},XS={};try{U=JSON.parse(localStorage.getItem('metau')||'{}');SN=JSON.parse(localStorage.getItem('metasn')||'{}');XS=JSON.parse(localStorage.getItem('txsn')||'{}')}catch(e){}
+  const r=await(await fetch(syURL())).json();if(!r.ok)throw Error(r.error||'Fehler');const doc=r.data?JSON.parse(r.data):{t:0,v:{}},M=doc.m||{},XD=doc.x||{};let xp=0,xs=0;let pulled=0,pushed=0,chg=false;
+  PFL.forEach(p=>{const cur=p.id==PFC,D=cur?Sraw():mkey(p.id),loc=D.meta||(D.meta={}),rem=M[p.n]||(M[p.n]={});let dirty=false;
+   {const X=XD[p.n]||(XD[p.n]={tx:{},del:{}}),tm=X.tx||(X.tx={}),dl=X.del||(X.del={}),L=new Map((D.tx||[]).map(t=>[key(t),t])),prev=XS[p.id];
+    if(prev)prev.forEach(k=>{if(!L.has(k)&&!dl[k]){dl[k]=Date.now();delete tm[k];chg=true;xs++}});
+    L.forEach((t,k)=>{const wk=prev&&prev.includes(k);if(dl[k]){if(wk){L.delete(k);dirty=true;xp++}else{delete dl[k];tm[k]=t;chg=true;xs++}}else if(!tm[k]){tm[k]=t;chg=true;xs++}});
+    Object.keys(tm).forEach(k=>{if(!L.has(k)&&!dl[k]){L.set(k,tm[k]);dirty=true;xp++}});
+    D.tx=[...L.values()];XS[p.id]=[...L.keys()]}
+   Object.keys(loc).forEach(t=>{const j=JSON.stringify(loc[t]),k=p.id+'|'+t;if(SN[k]!==j){if(SN[k]!==undefined||!rem[t]){U[k]=Date.now()}else U[k]=U[k]||1;SN[k]=j}});
+   new Set([...Object.keys(loc),...Object.keys(rem)]).forEach(t=>{const k=p.id+'|'+t,lu=U[k]||0,re=rem[t],ru=re?re.u:0;
+    if(re&&ru>lu){loc[t]=re.d;U[k]=ru;SN[k]=JSON.stringify(re.d);dirty=true;pulled++}
+    else if(loc[t]&&lu>ru){rem[t]={u:lu,d:loc[t]};chg=true;pushed++}});
+   if(dirty){if(cur){S.meta=loc;S.tx=D.tx;try{localStorage.setItem(pk('dt'),JSON.stringify(Sraw()))}catch(e){}}else try{localStorage.setItem(pk('dt',p.id),JSON.stringify(D))}catch(e){}}});
+  try{localStorage.setItem('metau',JSON.stringify(U));localStorage.setItem('metasn',JSON.stringify(SN));localStorage.setItem('txsn',JSON.stringify(XS))}catch(e){}
+  if(chg){doc.m=M;doc.x=XD;const body=JSON.stringify(doc);if(body.length>1900000){say('Stammdaten zu groß für den Sync ('+Math.round(body.length/1e6*10)/10+' MB).');return}
+   const w=await(await fetch(syURL(),{method:'POST',headers:{'content-type':'text/plain'},body})).json();if(!w.ok)throw Error(w.error||'Fehler')}
+  if((pulled||xp)&&$('#m')&&!$('#dg').open)render();
+  say('Stammdaten: '+pulled+' empfangen, '+pushed+' gesendet · Buchungen: '+xp+' empfangen, '+xs+' gesendet. '+new Date().toLocaleTimeString('de-DE',{hour:'2-digit',minute:'2-digit'}))}
+ catch(e){say('Stammdaten-Sync fehlgeschlagen: '+e.message)}}
 function saveSy(){const c=($('#syc').value||'').trim();try{localStorage.setItem('sycode',c)}catch(e){}if(c.length<8){$('#syst').textContent='Code zu kurz (mindestens 8 Zeichen).';return}syncV(1)}
 function genSy(){const a='abcdefghjkmnpqrstuvwxyz23456789';let c='';const r=new Uint32Array(14);crypto.getRandomValues(r);r.forEach((x,i)=>{c+=a[x%a.length];if(i==4||i==9)c+='-'});$('#syc').value=c}
 const qHdr=()=>{const K=gk(),hd={};if(K.td)hd['x-td-key']=K.td;if(K.fmp)hd['x-fmp-key']=K.fmp;let pf='';try{pf=localStorage.getItem('qpref')||''}catch(e){}return{hd,pf}};
