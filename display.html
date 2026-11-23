@@ -1,0 +1,305 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Dividenden · Display</title>
+<meta name="theme-color" content="#08080a">
+<style>
+:root{color-scheme:dark;--bg:#08080a;--card:#111216;--card2:#16171c;--tx:#e8e8ea;--mu:#8d9098;--ln:#22242a;--neon:#46f59a;--neon2:#2bd47e;--neg:#ff5c5c;--fc:#9aa0a8}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%;background:var(--bg);color:var(--tx);font-family:-apple-system,BlinkMacSystemFont,"SF Pro Display","SF Pro Text",system-ui,sans-serif;overflow:hidden;cursor:none;user-select:none;-webkit-font-smoothing:antialiased}
+body.mv{cursor:default}
+.num{font-variant-numeric:tabular-nums;letter-spacing:-.02em}
+#st{position:fixed;inset:0;padding:3.2vh 2.2vw 6vh}
+.hd{position:absolute;top:3vh;left:2.2vw;right:2.2vw;display:flex;align-items:center;gap:1.2vw;font-size:3.6vh;color:var(--mu);font-weight:500;z-index:3}
+.hd b{color:var(--tx);font-weight:600}
+.hd .sp{flex:1}
+#clk{font-variant-numeric:tabular-nums;color:var(--tx)}
+#pfn{opacity:.7}
+.sl{position:absolute;inset:11vh 2.2vw 7vh;opacity:0;transform:translateY(4vh) scale(.985);filter:blur(6px);transition:opacity .9s cubic-bezier(.2,.7,.2,1),transform .9s cubic-bezier(.2,.7,.2,1),filter .9s;pointer-events:none}
+.sl.on{opacity:1;transform:none;filter:none;pointer-events:auto}
+.sl.out{opacity:0;transform:translateY(-4vh) scale(.985);filter:blur(6px)}
+.ft{position:absolute;left:2.2vw;right:2.2vw;bottom:2.6vh;display:flex;align-items:center;gap:1vw;font-size:2.6vh;color:var(--mu);z-index:3}
+.bar{flex:1;height:.5vh;background:var(--ln);border-radius:1vh;overflow:hidden}
+.bar i{display:block;height:100%;width:0;background:linear-gradient(90deg,var(--neon2),var(--neon));border-radius:1vh}
+.dots{display:flex;gap:.6vw}
+.dots span{width:1.4vh;height:1.4vh;border-radius:50%;background:var(--ln);transition:background .4s,transform .4s}
+.dots span.on{background:var(--neon);transform:scale(1.25)}
+#pz{display:none;color:var(--tx)}
+body.paused #pz{display:inline}
+.up{color:var(--neon)}.dn{color:var(--neg)}.mu{color:var(--mu)}
+.lbl{font-size:3.2vh;color:var(--mu);font-weight:500;letter-spacing:.01em}
+/* Portfolio */
+.pf{display:grid;grid-template-columns:1.15fr 1fr;gap:3vw;height:100%}
+.big{font-size:23vh;font-weight:650;line-height:1;margin-top:1.5vh;letter-spacing:-.04em}
+.big small{font-size:.42em;font-weight:500;color:var(--mu);margin-left:.6vw}
+.chips{display:flex;gap:1vw;margin-top:3.2vh;flex-wrap:wrap}
+.chip{background:var(--card);border:1px solid var(--ln);border-radius:2vh;padding:1.4vh 1.2vw;font-size:3.8vh;font-weight:600}
+.chip>span:last-child{font-weight:500;color:var(--mu);font-size:.8em;margin-left:.5vw}
+.mov{display:flex;flex-direction:column;justify-content:center;gap:1.6vh}
+.mv1{display:grid;grid-template-columns:13vw 1fr 8vw;align-items:center;gap:1vw;font-size:3.5vh;opacity:0;transform:translateX(3vw);transition:opacity .7s,transform .7s}
+.on .mv1{opacity:1;transform:none}
+.mv1 .n{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.mv1 .tr{height:2.2vh;background:var(--card2);border-radius:1vh;position:relative;overflow:hidden}
+.mv1 .tr i{position:absolute;top:0;bottom:0;left:50%;border-radius:1vh;transition:width 1.1s cubic-bezier(.2,.7,.2,1)}
+.mv1 .p{text-align:right;font-weight:600}
+/* Kacheln */
+.tiles{display:grid;grid-template-columns:repeat(4,1fr);gap:1.4vw;height:62%}
+.tile{background:var(--card);border:1px solid var(--ln);border-radius:2.6vh;padding:3vh 1.4vw;display:flex;flex-direction:column;justify-content:space-between;opacity:0;transform:translateY(3vh);transition:opacity .7s,transform .7s}
+.on .tile{opacity:1;transform:none}
+.tile .v{font-size:9.5vh;font-weight:650;letter-spacing:-.03em}
+.tile .s{font-size:2.8vh;color:var(--mu)}
+.goal{margin-top:3.4vh}
+.goal .gt{display:flex;justify-content:space-between;font-size:3.2vh;color:var(--mu);margin-bottom:1.4vh}
+.goal .gt b{color:var(--tx)}
+.gb{height:3vh;background:var(--card2);border-radius:2vh;overflow:hidden;position:relative}
+.gb i{position:absolute;inset:0 auto 0 0;width:0;background:linear-gradient(90deg,var(--neon2),var(--neon));border-radius:2vh;transition:width 1.6s cubic-bezier(.2,.7,.2,1) .3s;box-shadow:0 0 2vh rgba(70,245,154,.45)}
+.gb em{position:absolute;inset:0 auto 0 0;width:0;background:repeating-linear-gradient(135deg,rgba(154,160,168,.35) 0 .6vh,transparent .6vh 1.4vh);transition:width 1.6s cubic-bezier(.2,.7,.2,1) .3s}
+/* Naechste */
+.nx{display:flex;gap:1.2vw;height:76%}
+.cd{flex:1;min-width:0;background:var(--card);border:1px solid var(--ln);border-radius:2.6vh;padding:2.8vh 1.2vw;display:flex;flex-direction:column;opacity:0;transform:translateY(4vh);transition:opacity .7s,transform .7s}
+.on .cd{opacity:1;transform:none}
+.cd .dt{display:flex;align-items:baseline;gap:.5vw}
+.cd .d{font-size:10vh;font-weight:650;line-height:1}
+.cd .m{font-size:3.6vh;color:var(--mu);text-transform:uppercase;font-weight:600}
+.cd .n{font-size:3.4vh;margin-top:2vh;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-weight:550}
+.cd .a{font-size:5.6vh;font-weight:650;margin-top:auto;color:var(--neon)}
+.cd .i{font-size:2.6vh;color:var(--mu);margin-top:.6vh}
+.cd.est .a{color:var(--tx)}
+.tag{display:inline-block;font-size:2.2vh;padding:.3vh .6vw;border-radius:1vh;background:var(--card2);color:var(--mu);margin-left:.4vw;vertical-align:middle}
+.tag.ok{color:var(--neon);background:rgba(70,245,154,.1)}
+.sum{margin-top:2.6vh;font-size:3.2vh;color:var(--mu)}
+.sum b{color:var(--tx)}
+/* Chart */
+.chh{display:flex;gap:3vw;font-size:3.2vh;color:var(--mu);margin-bottom:1.4vh}
+.chh b{color:var(--tx);font-size:1.15em}
+#chart{width:100%;height:82%}
+#chart .bb{transform-box:fill-box;transform-origin:bottom;transform:scaleY(0);transition:transform 1s cubic-bezier(.2,.7,.2,1)}
+.on #chart .bb{transform:scaleY(1)}
+#chart text{font-family:inherit;fill:var(--mu)}
+/* leer / Setup */
+.empty{display:flex;flex-direction:column;justify-content:center;height:100%;font-size:4vh;gap:2vh}
+.empty b{font-size:6vh}
+#gear{position:fixed;top:2.6vh;right:1vw;z-index:9;opacity:0;transition:opacity .3s;background:var(--card);border:1px solid var(--ln);color:var(--tx);border-radius:1.6vh;font-size:3vh;padding:.8vh 1vw;cursor:pointer}
+body.mv #gear{opacity:1}
+dialog{margin:auto;background:#0e0f12;color:var(--tx);border:1px solid var(--ln);border-radius:2.4vh;padding:2.6vh 2vw;width:min(1100px,90vw);max-height:92vh;overflow:auto;font-size:15px;cursor:default}
+dialog::backdrop{background:rgba(0,0,0,.65)}
+dialog h2{font-size:18px;margin-bottom:12px}
+dialog .row{display:flex;gap:16px;flex-wrap:wrap;margin:10px 0;align-items:center}
+dialog label{display:flex;gap:6px;align-items:center}
+dialog input[type=text],dialog input[type=password],dialog input[type=number],dialog select{background:#16171c;border:1px solid var(--ln);color:var(--tx);border-radius:8px;padding:7px 9px;font:inherit}
+dialog input[type=text],dialog input[type=password]{width:340px}
+dialog button{background:var(--neon2);color:#03110a;border:0;border-radius:8px;padding:8px 16px;font:inherit;font-weight:600;cursor:pointer}
+dialog button.sec{background:#1d1f25;color:var(--tx)}
+dialog .hint{color:var(--mu);font-size:13px}
+body.priv .pv{filter:blur(2.4vh)}
+</style>
+</head>
+<body>
+<div id="st">
+ <div class="hd"><b id="ttl">Portfolio</b><span id="pfn"></span><span class="sp"></span><span id="pz">⏸ pausiert</span><span id="clk"></span></div>
+ <section class="sl" id="v-pf"></section>
+ <section class="sl" id="v-dv"></section>
+ <section class="sl" id="v-nx"></section>
+ <section class="sl" id="v-ch"></section>
+ <section class="sl" id="v-empty"></section>
+ <div class="ft"><div class="dots" id="dots"></div><div class="bar"><i id="prog"></i></div><span id="sts"></span></div>
+</div>
+<button id="gear" title="Einstellungen (S)">⚙︎</button>
+<dialog id="cfg">
+ <h2>Display-Einstellungen</h2>
+ <div class="row"><label>Worker-Adresse <input type="text" id="cw" placeholder="https://…workers.dev"></label></div>
+ <div class="row"><label>Sync-Code <input type="password" id="cc" placeholder="wie in der App unter Sync"></label></div>
+ <div class="row"><label>Portfolio <select id="cp"></select></label><span class="hint">Liste erscheint nach dem ersten erfolgreichen Sync.</span></div>
+ <div class="row"><b>Ansichten:</b>
+  <label><input type="checkbox" value="pf"> Portfolio-Wert &amp; Tag</label>
+  <label><input type="checkbox" value="dv"> Dividenden Monat/Jahr</label>
+  <label><input type="checkbox" value="nx"> Nächste Dividenden</label>
+  <label><input type="checkbox" value="ch"> Monats-Balkendiagramm</label></div>
+ <div class="row"><label>Wechsel alle <input type="number" id="ci" min="4" max="300" style="width:80px"> Sekunden</label>
+  <label><input type="checkbox" id="cpv"> Beträge verbergen (Inkognito)</label></div>
+ <p class="hint">Bedienung: Klick rechts = weiter, links = zurück, Leertaste = Pause, S = Einstellungen. Daten und Kurse werden alle 2 Stunden neu geladen (Taste R = sofort).</p>
+ <div class="row"><button id="csv">Speichern</button><button class="sec" id="cx">Abbrechen</button><span id="cst" class="hint"></span></div>
+</dialog>
+<script>
+'use strict';
+const $=s=>document.querySelector(s);
+const LS={get(k,d){try{const v=localStorage.getItem(k);return v==null?d:JSON.parse(v)}catch(e){return d}},raw(k){try{return localStorage.getItem(k)}catch(e){return null}},set(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}}};
+const VIEWS={pf:'Portfolio',dv:'Dividenden',nx:'Nächste Dividenden',ch:'Dividenden pro Monat'};
+
+// ---------- Konfiguration ----------
+let C=Object.assign({w:'',c:'',p:'',views:['pf','dv','nx','ch'],iv:12,priv:false},LS.get('dd_cfg',{}));
+if(!C.w)C.w=LS.raw('divworker')||'';
+if(!C.c)C.c=(LS.raw('sycode')||'').trim();
+if(location.hash.length>1){const h=new URLSearchParams(location.hash.slice(1));
+ if(h.get('w'))C.w=h.get('w');if(h.get('c'))C.c=h.get('c');if(h.get('p'))C.p=h.get('p');
+ if(h.get('iv'))C.iv=Math.max(4,+h.get('iv')||12);
+ LS.set('dd_cfg',C);history.replaceState(null,'',location.pathname+location.search)}
+C.w=String(C.w||'').replace(/\/+$/,'');
+
+// ---------- Formatierung ----------
+const eur=(v,d=2)=>(v||0).toLocaleString('de-DE',{style:'currency',currency:'EUR',minimumFractionDigits:d,maximumFractionDigits:d});
+const eur0=v=>eur(v,Math.abs(v)>=10000?0:2);
+const pct=v=>(v>0?'+':'')+(v||0).toLocaleString('de-DE',{minimumFractionDigits:2,maximumFractionDigits:2})+' %';
+const sg=v=>(v>0?'+':v<0?'−':'')+eur(Math.abs(v));
+const esc=x=>String(x??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const MON=['Jan','Feb','Mär','Apr','Mai','Jun','Jul','Aug','Sep','Okt','Nov','Dez'];
+const iso=d=>d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+const ym=s=>s.slice(0,7);
+const addY=(s,n)=>{const d=new Date(s.slice(0,10)+'T12:00:00');d.setFullYear(d.getFullYear()+n);return iso(d)};
+const short=n=>{n=String(n||'').replace(/\b(UCITS|ETF|Inc\.?|Corp\.?|Corporation|plc|AG|SE|N\.V\.|S\.A\.|Holdings?|Group|Company|Co\.|\(Dist\)|Dist|Acc|USD|EUR)\b/gi,'').replace(/\s{2,}/g,' ').trim();return n.length>26?n.slice(0,25)+'…':n};
+
+// ---------- Daten ----------
+let D=LS.get('dd_cache',null);    // {p,names,tx,meta,t}
+let Q=LS.get('dd_q',null)||LS.get('divq',{})||{}; // ticker -> {p,pc,sym,ts}
+let lastSync=D?D.t:0,syncErr='';
+
+function localData(){ // Daten aus der Tracker-App im selben Browser
+ const PFL=LS.get('pfl',[{id:'p1',n:'Portfolio 1'}]),PFC=LS.raw('pfc')||'p1';
+ const pick=PFL.find(p=>p.n==C.p)||PFL.find(p=>p.id==PFC)||PFL[0];if(!pick)return null;
+ const dt=LS.get(pick.id=='p1'?'dt':'dt_'+pick.id,null);if(!dt||!(dt.tx||[]).length)return null;
+ return{p:pick.n,names:PFL.map(p=>p.n),tx:dt.tx,meta:dt.meta||{},t:Date.now(),src:'lokal'}}
+
+async function pull(){
+ if(!C.w||(C.c||'').length<8){const l=localData();if(l){D=l;LS.set('dd_cache',D)}syncErr=C.w?'':'';return}
+ try{const r=await(await fetch(C.w+'/sync?code='+encodeURIComponent(C.c),{cache:'no-store'})).json();if(!r.ok)throw Error(r.error||'Sync-Fehler');
+  const doc=r.data?JSON.parse(r.data):{},X=doc.x||{},M=doc.m||{};const names=[...new Set([...Object.keys(X),...Object.keys(M)])].filter(n=>X[n]&&Object.keys(X[n].tx||{}).length);
+  if(!names.length)throw Error('Im Sync liegen noch keine Buchungen. Bitte in der App einmal synchronisieren.');
+  const p=names.includes(C.p)?C.p:names[0],x=X[p],del=x.del||{};
+  const tx=Object.entries(x.tx||{}).filter(([k])=>!del[k]).map(([,v])=>v);
+  const meta={};Object.entries(M[p]||{}).forEach(([t,v])=>{meta[t]=v&&v.d!==undefined?v.d:v});
+  D={p,names,tx,meta,t:Date.now(),src:'sync'};LS.set('dd_cache',D);lastSync=D.t;syncErr=''}
+ catch(e){syncErr=e.message||String(e);const l=localData();if(l&&!D)D=l}}
+
+async function quotes(){
+ if(!C.w||!D)return;const H=holdings().filter(h=>h.q>1e-4&&h.isin);const kk=LS.get('dtk',{}),hd={};if(kk.td)hd['x-td-key']=kk.td;if(kk.fmp)hd['x-fmp-key']=kk.fmp;
+ await Promise.all(H.map(async h=>{const o=Q[h.t]||{};try{const r=await fetch(`${C.w}/quote?isin=${encodeURIComponent(h.isin)}${o.sym?'&sym='+encodeURIComponent(o.sym):''}`,Object.keys(hd).length?{headers:hd}:undefined),j=await r.json();
+  if(j.ok&&j.eur>0)Q[h.t]={p:j.eur,pc:j.prevEur,sym:j.sym,ts:j.time||Date.now()}}catch(e){}}));LS.set('dd_q',Q)}
+
+function holdings(){if(!D)return[];const h={};[...D.tx].sort((a,b)=>a.date<b.date?-1:1).forEach(t=>{if(!t.ticker||!['buy','sell','div'].includes(t.type))return;
+ const x=h[t.ticker]||(h[t.ticker]={t:t.ticker,name:t.name,isin:'',q:0,cost:0,div:0});if(t.isin)x.isin=t.isin;if(t.name)x.name=t.name;
+ if(t.type=='buy'){x.q+=+t.qty;x.cost+=+t.amount}else if(t.type=='sell'){const a=x.q?x.cost/x.q:0;x.cost-=a*t.qty;x.q-=+t.qty}else x.div+=+t.amount});
+ return Object.values(h)}
+const qtyAt=(t,d)=>D.tx.filter(x=>x.ticker==t&&x.date<=d&&(x.type=='buy'||x.type=='sell')).reduce((s,x)=>s+(x.type=='buy'?+x.qty:-x.qty),0);
+const nameOf=t=>{const m=D.meta[t]||{};return m.alias||m.nm||((D.tx.find(x=>x.ticker==t&&x.name)||{}).name)||t};
+
+function calc(){
+ const today=iso(new Date()),H=holdings(),act=H.filter(h=>h.q>1e-4);
+ let val=0,day=0,cost=0,qc=0;const mov=[];
+ act.forEach(h=>{cost+=h.cost;const q=Q[h.t];if(q&&q.p>0){val+=h.q*q.p;qc++;if(q.pc>0){day+=h.q*(q.p-q.pc);mov.push({t:h.t,n:nameOf(h.t),c:(q.p/q.pc-1)*100,v:h.q*q.p})}}else val+=h.cost});
+ const divs=D.tx.filter(x=>x.type=='div').map(x=>({t:x.ticker,d:x.date.slice(0,10),a:+x.amount}));
+ const y0=today.slice(0,4),m0=ym(today),d365=addY(today,-1);
+ const sum=f=>divs.filter(f).reduce((s,x)=>s+x.a,0);
+ const dm=sum(x=>ym(x.d)==m0),dy=sum(x=>x.d.slice(0,4)==y0),dttm=sum(x=>x.d>d365&&x.d<=today),dall=sum(()=>true);
+ // Prognose: Zahlungen der letzten 12 Monate um 1 Jahr fortschreiben, auf heutige Stückzahl skaliert
+ const held=new Map(act.map(h=>[h.t,h.q])),fc=[];
+ divs.filter(x=>x.d>d365&&x.d<=today&&held.has(x.t)).forEach(x=>{const qa=qtyAt(x.t,x.d+'T23:59');if(qa<=0)return;const d=addY(x.d,1);fc.push({t:x.t,d,a:x.a*held.get(x.t)/qa,est:true})});
+ // angekündigte Termine markieren
+ fc.forEach(f=>{const nx=((D.meta[f.t]||{}).ev||{}).nx;if(nx&&nx.ex&&nx.ex>=today){const dd=Math.abs(new Date(nx.ex)-new Date(f.d))/864e5;if(dd<60){f.ok=true;f.ex=nx.ex;if(nx.pay)f.d=nx.pay}}});
+ fc.sort((a,b)=>a.d<b.d?-1:1);
+ const fyRest=fc.filter(f=>f.d.slice(0,4)==y0&&f.d>today).reduce((s,f)=>s+f.a,0);
+ const f12=fc.reduce((s,f)=>s+f.a,0);
+ // Monatsbalken: 12 zurück (inkl. aktuell) + 12 voraus
+ const now=new Date(),bars=[];
+ for(let i=-11;i<=12;i++){const d=new Date(now.getFullYear(),now.getMonth()+i,1),k=iso(d).slice(0,7);
+  const a=i<=0?sum(x=>ym(x.d)==k):0,f=i>=0?fc.filter(x=>ym(x.d)==k&&x.d>today).reduce((s,x)=>s+x.a,0):0;bars.push({k,m:d.getMonth(),y:d.getFullYear(),a,f,cur:i==0})}
+ mov.sort((a,b)=>b.c-a.c);
+ return{val,day,cost,gain:val-cost,qc,n:act.length,mov,dm,dy,dttm,dall,avg:dttm/12,yoc:cost?dttm/cost*100:0,fc,fyRest,f12,bars,today}}
+
+// ---------- Count-up ----------
+function countUp(root){root.querySelectorAll('[data-cu]').forEach(el=>{const to=+el.dataset.cu,fmt=el.dataset.f||'eur',t0=performance.now(),dur=1300;
+ const f=v=>fmt=='pc0'?pct(v).replace('+',''):fmt=='pct'?pct(v):fmt=='sg'?sg(v):fmt=='eur0'?eur0(v):eur(v);
+ const st=n=>{const p=Math.min(1,(n-t0)/dur),e=1-Math.pow(1-p,4);el.textContent=f(to*e);if(p<1)requestAnimationFrame(st)};requestAnimationFrame(st)})}
+const cu=(v,f='eur',cls='')=>`<span class="num pv ${cls}" data-cu="${v}" data-f="${f}">${f=='pct'?pct(0):eur(0)}</span>`;
+
+// ---------- Ansichten ----------
+function vPF(R){const dc=R.val-R.day,dp=dc?R.day/dc*100:0,gp=R.cost?R.gain/R.cost*100:0;
+ const top=R.mov.slice(0,3),flop=R.mov.slice(-3).reverse().filter(x=>!top.includes(x)),L=[...top,...flop.slice(0,Math.max(0,6-top.length))];
+ const mx=Math.max(1,...L.map(x=>Math.abs(x.c)));
+ return`<div class="pf"><div><div class="lbl">Portfolio Wert${R.qc<R.n?` <span class="tag">${R.n-R.qc} ohne Kurs</span>`:''}</div>
+ <div class="big num pv" data-cu="${R.val}" data-f="eur0">${eur0(0)}</div>
+ <div class="chips"><div class="chip ${R.day>=0?'up':'dn'}">${cu(R.day,'sg')}<span>${pct(dp)} heute</span></div>
+ <div class="chip ${R.gain>=0?'up':'dn'}">${cu(R.gain,'sg')}<span>${pct(gp)} Kursgewinn</span></div></div></div>
+ <div class="mov"><div class="lbl">Heute</div>${L.length?L.map((x,i)=>`<div class="mv1" style="transition-delay:${.15+i*.08}s"><span class="n">${esc(short(x.n))}</span><div class="tr"><i style="width:0;${x.c>=0?'left:50%':'right:50%;left:auto'};background:${x.c>=0?'var(--neon)':'var(--neg)'}" data-w="${Math.abs(x.c)/mx*50}"></i></div><span class="p num ${x.c>=0?'up':'dn'}">${pct(x.c)}</span></div>`).join(''):'<div class="mu" style="font-size:3.4vh">Noch keine Tageskurse.</div>'}</div></div>`}
+
+function vDV(R){const yr=R.dy+R.fyRest,p=yr?R.dy/yr*100:0;
+ return`<div class="tiles">
+ <div class="tile"><div class="lbl">Diesen Monat</div><div class="v up">${cu(R.dm)}</div><div class="s">${MON[new Date().getMonth()]} ${new Date().getFullYear()}</div></div>
+ <div class="tile" style="transition-delay:.1s"><div class="lbl">Dieses Jahr</div><div class="v">${cu(R.dy)}</div><div class="s">seit 1. Januar</div></div>
+ <div class="tile" style="transition-delay:.2s"><div class="lbl">Letzte 12 Monate</div><div class="v">${cu(R.dttm)}</div><div class="s">Ø ${'<span class="pv">'+eur(R.avg)+'</span>'} pro Monat</div></div>
+ <div class="tile" style="transition-delay:.3s"><div class="lbl">Rendite auf Einstand</div><div class="v">${cu(R.yoc,'pc0')}</div><div class="s">12 M · gesamt erhalten <span class="pv">${eur0(R.dall)}</span></div></div></div>
+ <div class="goal"><div class="gt"><span>Jahr ${new Date().getFullYear()}: <b class="pv">${eur(R.dy)}</b> erhalten</span><span>Prognose Jahr: <b class="pv">${eur(yr)}</b> (ca.)</span></div>
+ <div class="gb"><em data-w="100"></em><i data-w="${p}"></i></div></div>`}
+
+function vNX(R){const L=R.fc.filter(f=>f.d>R.today).slice(0,6);
+ if(!L.length)return`<div class="empty"><b>Keine Termine in Sicht</b><span class="mu">Für die nächsten 12 Monate liegt noch keine Zahlungshistorie vor.</span></div>`;
+ const d30=addY(R.today,0),lim=iso(new Date(Date.now()+30*864e5)),s30=R.fc.filter(f=>f.d>R.today&&f.d<=lim).reduce((s,f)=>s+f.a,0);
+ return`<div class="nx">${L.map((f,i)=>{const d=new Date(f.d+'T12:00:00'),dd=Math.round((d-new Date(R.today+'T12:00:00'))/864e5);
+  return`<div class="cd ${f.ok?'':'est'}" style="transition-delay:${i*.09}s"><div class="dt"><span class="d num">${d.getDate()}</span><span class="m">${MON[d.getMonth()]}</span></div>
+  <div class="n">${esc(short(nameOf(f.t)))}</div><div class="a num pv">${f.ok?'':'ca. '}${eur(f.a)}</div>
+  <div class="i">${dd<=0?'heute':dd==1?'morgen':'in '+dd+' Tagen'}${f.ok?`<span class="tag ok">Ex ${f.ex.slice(8,10)}.${f.ex.slice(5,7)}.</span>`:'<span class="tag">geschätzt</span>'}</div></div>`}).join('')}</div>
+ <div class="sum">Nächste 30 Tage: <b class="pv">ca. ${eur(s30)}</b> · Prognose 12 Monate: <b class="pv">ca. ${eur(R.f12)}</b></div>`}
+
+function vCH(R){const B=R.bars,W=1840,Hh=300,pad=34,top=30,mx=Math.max(1,...B.map(b=>b.a+b.f)),bw=(W-pad)/B.length,iw=bw*.62;
+ const a12=B.filter(b=>!b.cur&&b.a>0||b.cur).slice(0,12).reduce((s,b)=>s+b.a,0);
+ let g='';B.forEach((b,i)=>{const x=pad+i*bw+(bw-iw)/2,ha=b.a/mx*Hh,hf=b.f/mx*Hh,yb=top+Hh,dl=i*.035;
+  if(ha>0)g+=`<rect class="bb" style="transition-delay:${dl}s" x="${x}" y="${yb-ha}" width="${iw}" height="${ha}" rx="5" fill="url(#gn)"/>`;
+  if(hf>0)g+=`<rect class="bb" style="transition-delay:${dl}s" x="${x}" y="${yb-ha-hf}" width="${iw}" height="${hf}" rx="5" fill="url(#ht)" stroke="rgba(154,160,168,.55)" stroke-width="1.2"/>`;
+  const tot=b.a+b.f;if(tot>0)g+=`<text class="pv" x="${x+iw/2}" y="${yb-ha-hf-8}" text-anchor="middle" font-size="15" style="fill:${b.a>0?'#cfd2d6':'#8d9098'}">${Math.round(tot)}</text>`;
+  g+=`<text x="${x+iw/2}" y="${yb+26}" text-anchor="middle" font-size="17" style="${b.cur?'fill:#e8e8ea;font-weight:700':''}">${MON[b.m]}${b.m==0?' ’'+String(b.y).slice(2):''}</text>`});
+ const nowX=pad+11*bw+bw/2;
+ return`<div class="chh"><span>Letzte 12 Monate <b class="pv">${eur(R.dttm)}</b></span><span>Prognose 12 Monate <b class="pv">ca. ${eur(R.f12)}</b></span><span class="sp" style="flex:1"></span><span><span style="display:inline-block;width:2vh;height:2vh;border-radius:.4vh;background:var(--neon);vertical-align:middle"></span> erhalten &nbsp; <span style="display:inline-block;width:2vh;height:2vh;border-radius:.4vh;background:repeating-linear-gradient(135deg,#9aa0a8 0 3px,transparent 3px 7px);border:1px solid #9aa0a8;vertical-align:middle"></span> Prognose</span></div>
+ <svg id="chart" viewBox="0 0 ${W} ${top+Hh+36}" preserveAspectRatio="none">
+ <defs><linearGradient id="gn" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#46f59a"/><stop offset="1" stop-color="#1c9a5c"/></linearGradient>
+ <pattern id="ht" width="9" height="9" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><rect width="9" height="9" fill="rgba(154,160,168,.08)"/><line x1="0" y1="0" x2="0" y2="9" stroke="rgba(154,160,168,.5)" stroke-width="3"/></pattern></defs>
+ <line x1="${pad}" x2="${W}" y1="${top+Hh}" y2="${top+Hh}" stroke="#22242a"/>
+ <line x1="${nowX}" x2="${nowX}" y1="${top-10}" y2="${top+Hh}" stroke="#46f59a" stroke-opacity=".35" stroke-dasharray="4 6"/>
+ ${g}</svg>`}
+
+const RENDER={pf:vPF,dv:vDV,nx:vNX,ch:vCH};
+
+// ---------- Ablauf ----------
+let R=null,idx=0,list=[],paused=false,t0=0,raf=0;
+function build(){
+ list=(C.views||[]).filter(v=>RENDER[v]);if(!list.length)list=['pf'];
+ $('#dots').innerHTML=list.map(()=>'<span></span>').join('');
+ document.body.classList.toggle('priv',!!C.priv)}
+function empty(){const s=$('#v-empty');document.querySelectorAll('.sl').forEach(x=>x.classList.remove('on','out'));$('#ttl').textContent='Dividenden-Display';
+ s.innerHTML=`<div class="empty"><b>${syncErr?'Daten konnten nicht geladen werden':'Noch keine Daten'}</b><span class="mu">${esc(syncErr||'Bitte Worker-Adresse und Sync-Code eintragen (Taste S oder Zahnrad oben rechts).')}</span></div>`;s.classList.add('on')}
+function show(i,dir=1){if(!D||!R){empty();return}
+ $('#v-empty').classList.remove('on');idx=(i+list.length)%list.length;const v=list[idx];
+ document.querySelectorAll('.sl.on').forEach(x=>{if(x.id!='v-'+v){x.classList.remove('on');x.classList.add('out');setTimeout(()=>x.classList.remove('out'),900)}});
+ const el=$('#v-'+v);el.classList.remove('on');el.innerHTML=RENDER[v](R);void el.offsetWidth;
+ requestAnimationFrame(()=>{el.classList.add('on');countUp(el);setTimeout(()=>el.querySelectorAll('[data-w]').forEach(b=>b.style.width=b.dataset.w+'%'),60)});
+ $('#ttl').textContent=VIEWS[v];$('#pfn').textContent=D.p?'· '+D.p:'';
+ [...$('#dots').children].forEach((d,j)=>d.classList.toggle('on',j==idx));t0=performance.now()}
+function tick(n){if(!paused&&R&&list.length>1){const p=Math.min(1,(n-t0)/(C.iv*1000));$('#prog').style.width=p*100+'%';if(p>=1)show(idx+1)}else if(!paused)$('#prog').style.width=R?'100%':'0';raf=requestAnimationFrame(tick)}
+function status(){const t=lastSync?new Date(lastSync).toLocaleTimeString('de-DE',{hour:'2-digit',minute:'2-digit'}):'–';$('#sts').textContent=(syncErr&&D?'⚠ offline · ':'')+'Stand '+t+(D&&D.src=='lokal'?' (lokal)':'')}
+async function refresh(first){await pull();if(D){R=calc();if(first)show(0)}status();await quotes();if(D){R=calc();if(first)show(idx);status()}if(!D)empty()}
+setInterval(()=>{$('#clk').textContent=new Date().toLocaleTimeString('de-DE',{hour:'2-digit',minute:'2-digit'})},1000);
+$('#clk').textContent=new Date().toLocaleTimeString('de-DE',{hour:'2-digit',minute:'2-digit'});
+setInterval(async()=>{await refresh(false);/* Ansicht beim nächsten Wechsel aktualisiert */},2*60*60*1000);
+// Mitternacht/Tageswechsel: neu rechnen
+setInterval(()=>{if(D){R=calc()}},60*60*1000);
+
+// ---------- Bedienung ----------
+let mvT=0;document.addEventListener('mousemove',()=>{document.body.classList.add('mv');clearTimeout(mvT);mvT=setTimeout(()=>document.body.classList.remove('mv'),2500)});
+$('#st').addEventListener('click',e=>{if(!R)return openCfg();show(idx+(e.clientX<innerWidth/3?-1:1))});
+document.addEventListener('keydown',e=>{if($('#cfg').open)return;if(e.key=='ArrowRight')show(idx+1);else if(e.key=='ArrowLeft')show(idx-1);else if(e.key==' '){paused=!paused;document.body.classList.toggle('paused',paused);t0=performance.now()-(paused?0:0);e.preventDefault()}else if(e.key=='s'||e.key=='S'){e.preventDefault();openCfg()}else if(e.key=='r'||e.key=='R')refresh(true)});
+$('#gear').addEventListener('click',e=>{e.stopPropagation();openCfg()});
+function openCfg(){$('#cw').value=C.w;$('#cc').value=C.c;$('#ci').value=C.iv;$('#cpv').checked=!!C.priv;
+ $('#cp').innerHTML=((D&&D.names)||[C.p||'']).map(n=>`<option ${n==(D&&D.p)?'selected':''}>${esc(n)}</option>`).join('');
+ document.querySelectorAll('#cfg input[type=checkbox][value]').forEach(b=>b.checked=(C.views||[]).includes(b.value));$('#cst').textContent='';$('#cfg').showModal()}
+$('#cx').onclick=()=>$('#cfg').close();
+$('#csv').onclick=async()=>{const nw=$('#cw').value.trim().replace(/\/+$/,''),nc=$('#cc').value.trim(),np=$('#cp').value;const ch=nw!=C.w||nc!=C.c||np!=C.p;
+ C.w=nw;C.c=nc;C.p=np;C.iv=Math.max(4,+$('#ci').value||12);C.priv=$('#cpv').checked;C.views=[...document.querySelectorAll('#cfg input[type=checkbox][value]:checked')].map(b=>b.value);
+ LS.set('dd_cfg',C);build();if(ch){$('#cst').textContent='Lade Daten …';D=null;await refresh(true);$('#cst').textContent=D?'Gespeichert.':'Fehler: '+syncErr;if(D)setTimeout(()=>$('#cfg').close(),600)}else{$('#cfg').close();if(R)show(idx)}};
+
+// ---------- Start ----------
+build();if(D){R=calc();show(0);status()}refresh(!D);requestAnimationFrame(tick);
+// Wake Lock gegen Bildschirmschoner (wo unterstützt)
+async function wake(){try{if('wakeLock'in navigator)await navigator.wakeLock.request('screen')}catch(e){}}wake();document.addEventListener('visibilitychange',()=>{if(!document.hidden)wake()});
+</script>
+</body>
+</html>
