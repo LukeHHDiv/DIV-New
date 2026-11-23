@@ -24,8 +24,9 @@ body.mv{cursor:default}
 body.tr-slide .sl{transform:translateX(8vw);filter:none}body.tr-slide .sl.on{transform:none}body.tr-slide .sl.out{transform:translateX(-8vw)}
 body.tr-fade .sl,body.tr-fade .sl.out{transform:none;filter:none}
 body.tr-zoom .sl{transform:scale(.9);filter:blur(4px)}body.tr-zoom .sl.on{transform:none;filter:none}body.tr-zoom .sl.out{transform:scale(1.08)}
-.ft{position:absolute;left:2.2vw;right:2.2vw;bottom:2.6vh;display:flex;align-items:center;gap:1vw;font-size:2.6vh;color:var(--mu);z-index:3}
-.bar{flex:1;height:.5vh;background:var(--ln);border-radius:1vh;overflow:hidden}
+.ft{position:absolute;left:2.2vw;right:2.2vw;bottom:2.6vh;display:grid;grid-template-columns:1fr auto 1fr;align-items:center;gap:1vw;font-size:2.6vh;color:var(--mu);z-index:3}
+.ft #sts{justify-self:end}
+.bar{display:none;height:.5vh;background:var(--ln);border-radius:1vh;overflow:hidden}
 .bar i{display:block;height:100%;width:0;background:linear-gradient(90deg,var(--neon2),var(--neon));border-radius:1vh}
 .dots{display:flex;gap:.6vw}
 .dots span{width:1.4vh;height:1.4vh;border-radius:50%;background:var(--ln);transition:background .4s,transform .4s}
@@ -35,13 +36,14 @@ body.paused #pz{display:inline}
 .up{color:var(--neon)}.dn{color:var(--neg)}.mu{color:var(--mu)}
 .lbl{font-size:3.2vh;color:var(--mu);font-weight:500;letter-spacing:.01em}
 /* Portfolio */
-.pf{display:grid;grid-template-columns:.95fr 1.25fr;gap:3vw;height:100%}
-.big{font-size:23vh;font-weight:650;line-height:1;margin-top:1.5vh;letter-spacing:-.04em}
+.pf{display:grid;grid-template-columns:.95fr 1.25fr;gap:3vw;height:100%;align-items:center}
+.pfl{display:flex;flex-direction:column;justify-content:center}
+.big{font-size:25vh;font-weight:650;line-height:1;margin-top:0;letter-spacing:-.04em}
 .big small{font-size:.42em;font-weight:500;color:var(--mu);margin-left:.6vw}
 .chips{display:flex;gap:1vw;margin-top:3.2vh;flex-wrap:wrap}
-.chip{background:var(--card);border:1px solid var(--ln);border-radius:2vh;padding:1.4vh 1.2vw;font-size:3.8vh;font-weight:600}
-.chip>span:last-child{font-weight:500;color:var(--mu);font-size:.8em;margin-left:.5vw}
-.mov{display:flex;flex-direction:column;justify-content:space-evenly;gap:.6vh;height:100%}
+.chip{background:var(--card);border:1px solid var(--ln);border-radius:2vh;padding:1.4vh 1.4vw;font-size:5vh;font-weight:650}
+.chip>span.sub{font-weight:500;color:var(--mu);font-size:.8em;margin-left:.5vw}
+.mov{display:flex;flex-direction:column;justify-content:center;gap:3.2vh}
 .mv1{display:grid;grid-template-columns:19vw 1fr 11vw;align-items:center;gap:1.2vw;font-size:6.2vh;font-weight:550;opacity:0;transform:translateX(3vw);transition:opacity .7s,transform .7s}
 .on .mv1{opacity:1;transform:none}
 .mv1 .n{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
@@ -109,7 +111,7 @@ body.priv .pv{filter:blur(2.4vh)}
  <section class="sl" id="v-nx"></section>
  <section class="sl" id="v-ch"></section>
  <section class="sl" id="v-empty"></section>
- <div class="ft"><div class="dots" id="dots"></div><div class="bar"><i id="prog"></i></div><span id="sts"></span></div>
+ <div class="ft"><span></span><div class="dots" id="dots"></div><span id="sts"></span><div class="bar"><i id="prog"></i></div></div>
 </div>
 <button id="gear" title="Einstellungen (S)">⚙︎</button>
 <dialog id="cfg">
@@ -132,7 +134,7 @@ body.priv .pv{filter:blur(2.4vh)}
 </dialog>
 <script>
 'use strict';
-const VER='2026-11-23.5'; // bei jeder Änderung hochzählen – die Anzeige lädt sich dann selbst neu
+const VER='2026-11-23.8'; // bei jeder Änderung hochzählen – die Anzeige lädt sich dann selbst neu
 const $=s=>document.querySelector(s);
 const LS={get(k,d){try{const v=localStorage.getItem(k);return v==null?d:JSON.parse(v)}catch(e){return d}},raw(k){try{return localStorage.getItem(k)}catch(e){return null}},set(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}}};
 const VIEWS={pf:'Portfolio',dv:'Dividenden',nx:'Nächste Dividenden',ch:'Dividenden pro Monat'};
@@ -267,17 +269,17 @@ function calc(){
 function countUp(root){root.querySelectorAll('[data-cu]').forEach(el=>{const to=+el.dataset.cu,fmt=el.dataset.f||'eur',t0=performance.now(),dur=1300;
  const f=v=>fmt=='pc0'?pct(v).replace('+',''):fmt=='pct'?pct(v):fmt=='sg'?sg(v):fmt=='eur0'?eur0(v):eur(v);
  const st=n=>{const p=Math.min(1,(n-t0)/dur),e=1-Math.pow(1-p,4);el.textContent=f(to*e);if(p<1)requestAnimationFrame(st)};requestAnimationFrame(st)})}
-const cu=(v,f='eur',cls='')=>`<span class="num pv ${cls}" data-cu="${v}" data-f="${f}">${f=='pct'?pct(0):eur(0)}</span>`;
+const cu=(v,f='eur',cls='')=>`<span class="num ${/^pc/.test(f)?'':'pv'} ${cls}" data-cu="${v}" data-f="${f}">${f=='pct'?pct(0):eur(0)}</span>`;
 
 // ---------- Ansichten ----------
 function vPF(R){const dc=R.val-R.day,dp=dc?R.day/dc*100:0,gp=R.cost?R.gain/R.cost*100:0;
  const top=R.mov.slice(0,3),flop=R.mov.slice(-2).reverse().filter(x=>!top.includes(x)),L=[...top,...flop].slice(0,5).sort((a,b)=>b.c-a.c);
  const mx=Math.max(1,...L.map(x=>Math.abs(x.c)));
- return`<div class="pf"><div><div class="lbl">Portfolio Wert${R.qc<R.n?` <span class="tag">${R.n-R.qc} ohne Kurs</span>`:''}</div>
+ return`<div class="pf"><div class="pfl">
  <div class="big num pv" data-cu="${R.val}" data-f="eur0">${eur0(0)}</div>
- <div class="chips"><div class="chip ${R.day>=0?'up':'dn'}">${cu(R.day,'sg')}<span>${pct(dp)} heute</span></div>
- <div class="chip ${R.gain>=0?'up':'dn'}">${cu(R.gain,'sg')}<span>${pct(gp)} Kursgewinn</span></div></div></div>
- <div class="mov"><div class="lbl" style="font-size:2.8vh">Heute</div>${L.length?L.map((x,i)=>`<div class="mv1" style="transition-delay:${.15+i*.08}s"><span class="n">${esc(short(x.n))}</span><div class="tr"><i style="width:0;${x.c>=0?'left:50%':'right:50%;left:auto'};background:${x.c>=0?'var(--neon)':'var(--neg)'}" data-w="${Math.abs(x.c)/mx*50}"></i></div><span class="p num ${x.c>=0?'up':'dn'}">${pct(x.c)}</span></div>`).join(''):'<div class="mu" style="font-size:4vh">Noch keine Tageskurse.</div>'}</div></div>`}
+ <div class="chips"><div class="chip ${dp>=0?'up':'dn'}">${cu(dp,'pct','')}</div>
+ <div class="chip ${gp>=0?'up':'dn'}">${cu(gp,'pct','')}</div>${R.qc<R.n?`<div class="chip" style="font-size:2.8vh;color:var(--mu)">${R.n-R.qc} ohne Kurs</div>`:''}</div></div>
+ <div class="mov">${L.length?L.map((x,i)=>`<div class="mv1" style="transition-delay:${.15+i*.08}s"><span class="n">${esc(short(x.n))}</span><div class="tr"><i style="width:0;${x.c>=0?'left:50%':'right:50%;left:auto'};background:${x.c>=0?'var(--neon)':'var(--neg)'}" data-w="${Math.abs(x.c)/mx*50}"></i></div><span class="p num ${x.c>=0?'up':'dn'}">${pct(x.c)}</span></div>`).join(''):'<div class="mu" style="font-size:4vh">Noch keine Tageskurse.</div>'}</div></div>`}
 
 function vDV(R){const yr=R.dy+R.fyRest,p=yr?R.dy/yr*100:0;
  return`<div class="tiles">
