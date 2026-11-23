@@ -141,7 +141,7 @@ body.priv .pv{filter:blur(2.4vh)}
 </dialog>
 <script>
 'use strict';
-const VER='2026-11-23.12'; // bei jeder Änderung hochzählen – die Anzeige lädt sich dann selbst neu
+const VER='2026-11-23.13'; // bei jeder Änderung hochzählen – die Anzeige lädt sich dann selbst neu
 const $=s=>document.querySelector(s);
 const LS={get(k,d){try{const v=localStorage.getItem(k);return v==null?d:JSON.parse(v)}catch(e){return d}},raw(k){try{return localStorage.getItem(k)}catch(e){return null}},set(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}}};
 const VIEWS={pf:'Portfolio',mv:'Gewinner & Verlierer heute',dv:'Dividenden',nx:'Nächste Dividenden',ch:'Dividenden pro Monat'};
@@ -283,11 +283,12 @@ function vPF(R){const dc=R.val-R.day,dp=dc?R.day/dc*100:0,gp=R.cost?R.gain/R.cos
  return`<div class="pf"><div class="big num pv" data-cu="${R.val}" data-f="eur0">${eur0(0)}</div>
  <div class="chips"><div class="chip"><span><small>heute</small><span class="${dp>=0?'up':'dn'}">${cu(dp,'pct')}</span></span><span class="sep"></span><span><small>gesamt</small><span class="${gp>=0?'up':'dn'}">${cu(gp,'pct')}</span></span></div>
  ${R.qc<R.n?`<div class="chip" style="font-size:2.8vh;color:var(--mu)">${R.n-R.qc} ohne Kurs</div>`:''}</div></div>`}
-function vMV(R){const up=R.mov.filter(x=>x.c>0).slice(0,5),dn=R.mov.filter(x=>x.c<0).sort((a,b)=>a.c-b.c).slice(0,5),mx=Math.max(.01,...R.mov.map(x=>Math.abs(x.c)));
- const row=(x,i,pos)=>`<div class="mv1" style="transition-delay:${.1+i*.07}s"><span class="n">${esc(short(x.n))}</span><div class="tr"><i style="width:0;background:${pos?'var(--neon)':'var(--neg)'}" data-w="${Math.abs(x.c)/mx*100}"></i></div><span class="p num ${pos?'up':'dn'}">${pct(x.c)}</span></div>`;
- if(!R.mov.length)return`<div class="empty"><b>Noch keine Tageskurse</b><span class="mu">Sobald Kurse geladen sind, erscheinen hier die Gewinner und Verlierer des Tages.</span></div>`;
- return`<div class="mvc"><div class="col"><div class="hd2 up">▲ Gewinner</div>${up.length?up.map((x,i)=>row(x,i,true)).join(''):'<div class="mu" style="font-size:3.4vh">Heute keine Gewinner</div>'}</div>
- <div class="col"><div class="hd2 dn">▼ Verlierer</div>${dn.length?dn.map((x,i)=>row(x,i,false)).join(''):'<div class="mu" style="font-size:3.4vh">Heute keine Verlierer</div>'}</div></div>`}
+function vMV(R){const L=[...R.mov].sort((a,b)=>Math.abs(b.c)-Math.abs(a.c)).slice(0,10).sort((a,b)=>b.c-a.c),mx=Math.max(.01,...L.map(x=>Math.abs(x.c)));
+ if(!L.length)return`<div class="empty"><b>Noch keine Tageskurse</b><span class="mu">Sobald Kurse geladen sind, erscheinen hier die Gewinner und Verlierer des Tages.</span></div>`;
+ const row=(x,i)=>{const pos=x.c>=0;return`<div class="mv1" style="transition-delay:${.08+i*.06}s"><span class="n">${esc(short(x.n))}</span><div class="tr"><i style="width:0;background:${pos?'var(--neon)':'var(--neg)'}" data-w="${Math.abs(x.c)/mx*100}"></i></div><span class="p num ${pos?'up':'dn'}">${pct(x.c)}</span></div>`};
+ const h=Math.ceil(L.length/2);
+ return`<div class="mvc"><div class="col">${L.slice(0,h).map(row).join('')}</div><div class="col">${L.slice(h).map((x,i)=>row(x,i+h)).join('')}</div></div>`}
+
 function vDV(R){const yr=R.dy+R.fyRest,p=yr?R.dy/yr*100:0;
  return`<div class="tiles">
  <div class="tile"><div class="lbl">Diesen Monat</div><div class="v up">${cu(R.dm)}</div><div class="s">${MON[new Date().getMonth()]} ${new Date().getFullYear()}</div></div>
