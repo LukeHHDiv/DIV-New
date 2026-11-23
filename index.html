@@ -95,6 +95,12 @@ dialog input[type=checkbox],.dup input{width:22px;height:22px;flex:none;margin:0
 #prv{position:absolute;right:14px;top:10px;width:34px;height:34px;border:0;border-radius:50%;background:none;color:var(--mu);opacity:.55;display:flex;align-items:center;justify-content:center;cursor:pointer}#prv svg{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}#prv .ec{display:none}#prv.on{color:var(--sg);opacity:1}#prv.on .ec{display:block}.top{position:relative}
 body.priv .blr,body.priv #wv,body.priv #wi{filter:blur(7px);-webkit-filter:blur(7px)}
 .pbr{display:grid;grid-template-columns:1fr 90px 58px;gap:8px;align-items:center;padding:5px 0;font-size:14px}.pbr span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.pbr div{height:6px;background:var(--ln);border-radius:3px;overflow:hidden}.pbr i{display:block;height:100%;border-radius:3px}.pbr b{text-align:right;font-weight:500}tr.yr td{background:rgba(255,255,255,.04)}
+
+#fsd{max-width:none;max-height:none;width:100vw;height:100vh;height:100dvh;margin:0;padding:0;border:0;border-radius:0;background:var(--bg);overflow:hidden}#fsd[open]{display:flex;flex-direction:column}
+.fsh{display:flex;justify-content:space-between;align-items:flex-start;padding:calc(14px + env(safe-area-inset-top,0px)) 20px 12px;border-bottom:1px solid var(--ln)}.fsh b{font-size:20px}
+.fsb{background:none;border:1px solid var(--ln);border-radius:10px;width:42px;height:42px;display:flex;align-items:center;justify-content:center;color:var(--tx);cursor:pointer}.fsb svg{width:22px;height:22px;stroke:currentColor;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.fsc{flex:1;min-height:0;position:relative;padding:16px 12px 4px}.fsl{display:flex;gap:22px;padding:8px 20px calc(16px + env(safe-area-inset-bottom,0px));color:var(--mu);font-size:14px}.fsl i{display:inline-block;width:12px;height:12px;border-radius:50%;margin-right:8px}
+.wfs{position:absolute;right:10px;top:10px;width:34px;height:34px;border:0;background:none;color:var(--mu);cursor:pointer;display:flex;align-items:center;justify-content:center;opacity:.8}.wfs svg{width:20px;height:20px;stroke:currentColor;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
 </style></head><body>
 <div class="app"><aside id="sb"><div class="logo">Mehr</div><div id="menu">
 <a data-k="dck">Datencheck</a>
@@ -314,7 +320,7 @@ async function fetchQ(force){const u=gw();if(!u)return;if(navigator.onLine===fal
   try{const r=await fetch(`${u}/quote?isin=${encodeURIComponent(isin)}${q.sym?'&sym='+encodeURIComponent(q.sym):''}`,Object.keys(QH.hd).length?{headers:QH.hd}:undefined),j=await r.json();if(j.ok&&j.eur>0){QT[h.t]={p:j.eur,pc:j.prevEur,c:j.cur,sym:j.sym,src:j.src,ts:j.time||Date.now()};n++;delete QE[h.t]}else QE[h.t]=j.error||'kein Kurs gefunden'}catch(e){errs++;QE[h.t]='Worker nicht erreichbar'}}));
  try{localStorage.setItem('divq',JSON.stringify(QT));if(n>0)localStorage.setItem('divqok',String(Date.now()))}catch(e){}
  QS={t:Date.now(),n,of:want.length};const sc={};want.forEach(h=>{const q=QT[h.t];if(q&&q.src)sc[q.src]=(sc[q.src]||0)+1});const SN={tradegate:'Tradegate',xetra:'Xetra',frankfurt:'Frankfurt',stuttgart:'Stuttgart',munich:'München',yahoo:'Yahoo',stooq:'Stooq',twelve:'Twelve Data',fmp:'FMP'},st2=$('#wst');if(st2)st2.textContent=`Kurse: ${n} von ${want.length} Titeln aktualisiert`+(Object.keys(sc).length?' ('+Object.entries(sc).map(([k,v])=>(SN[k]||k)+' '+v).join(', ')+')':'')+'.';
- fetchH();if(want.length){if(n==0)warn(errs?'Der Worker ist nicht erreichbar. Es werden die zuletzt gespeicherten Kurse gezeigt.':'Es wurden keine Kurse gefunden. Es werden die zuletzt gespeicherten Kurse gezeigt.',force);else if(n<want.length)warn(`Für ${want.length-n} von ${want.length} Titeln gab es keinen Kurs.`,force)}
+ fetchH();fetchD();if(want.length){if(n==0)warn(errs?'Der Worker ist nicht erreichbar. Es werden die zuletzt gespeicherten Kurse gezeigt.':'Es wurden keine Kurse gefunden. Es werden die zuletzt gespeicherten Kurse gezeigt.',force);else if(n<want.length)warn(`Für ${want.length-n} von ${want.length} Titeln gab es keinen Kurs.`,force)}
  if(['dash','hold','det','dvd'].includes(tab)&&!$('#dg').open)render()}
 
 // ---- Sync der Ansichten ueber den Worker (KV) ----
@@ -471,6 +477,44 @@ let HI={};try{HI=JSON.parse(localStorage.getItem('divh')||'{}')}catch(e){}
 const fmtD=d=>d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'),
  perDates=()=>{const n=new Date(),f=x=>fmtD(new Date(n.getTime()-x*864e5));return{'7':f(7),'30':f(30),'365':f(365),'ytd':(n.getFullYear()-1)+'-12-31'}};
 const mEnds=()=>{const n=new Date(),f=rawTx().reduce((m,t)=>t.date<m?t.date:m,'9999-99-99').slice(0,7),o=[];for(let i=1;i<=35;i++){const k=fmtD(new Date(n.getFullYear(),n.getMonth()-i+1,0));if(k.slice(0,7)<f)break;o.push(k)}return o.reverse()};
+
+// ---- Tagesgenaue Wertentwicklung ----
+let HD={};try{HD=JSON.parse(localStorage.getItem('divd')||'{}')}catch(e){}
+async function fetchD(){const u=gw();if(!u||navigator.onLine===false)return;const today=fmtD(new Date()),tk=[...new Set(rawTx().filter(x=>x.ticker&&['buy','sell'].includes(x.type)).map(x=>x.ticker))],
+ want=tk.filter(t=>{const h=HD[t];return !(h&&h.d==today)&&rawTx().some(x=>x.ticker==t&&x.isin)});if(!want.length)return;
+ await Promise.all(want.map(async t=>{const isin=(rawTx().find(x=>x.ticker==t&&x.isin)||{}).isin,q=QT[t]||{},m=S.meta[t]||{},sy=q.sym||m.ysym;
+  try{const j=await(await fetch(`${u}/series?isin=${encodeURIComponent(isin)}${sy?'&sym='+encodeURIComponent(sy):''}`)).json();if(j.ok&&j.pts&&j.pts.length>5)HD[t]={d:today,p:j.pts}}catch(e){}}));
+ try{localStorage.setItem('divd',JSON.stringify(HD))}catch(e){try{localStorage.removeItem('divd')}catch(e2){}}
+ if(tab=='dash'&&opt.dtab=='w'&&!$('#dg').open&&!($('#fsd')&&$('#fsd').open))render()}
+function dailySeries(st){const T=[...S.tx].filter(t=>['buy','sell'].includes(t.type)&&t.ticker).sort((a,b)=>a.date<b.date?-1:1);if(!T.length)return null;
+ const Hs=holdings().filter(h=>h.q>0.0001).map(h=>h.t),tks=[...new Set(T.map(t=>t.ticker))];
+ for(const t of Hs){if(!(HD[t]&&HD[t].p&&HD[t].p.length>5)||!(qP(t)>0))return null}
+ const first=T[0].date.slice(0,10),from=st>first?st:first,set=new Set(),today=fmtD(new Date());
+ Hs.forEach(t=>HD[t].p.forEach(([d])=>{if(d>=from)set.add(d)}));set.add(today);const dates=[...set].sort();if(dates.length<3)return null;
+ const P={};tks.forEach(t=>{const hd=HD[t]&&HD[t].p;P[t]={hd,i:0,q:0,c:0,last:hd?hd[hd.length-1][1]:0,cur:qP(t),held:Hs.includes(t)}});
+ let ti=0;const val=[],inv=[],fl=[];
+ dates.forEach(d=>{let fw=0;while(ti<T.length&&T[ti].date.slice(0,10)<=d){const x=T[ti++],p=P[x.ticker];fw+=x.type=='buy'?x.amount:-x.amount;if(x.type=='buy'){p.q+=x.qty;p.c+=x.amount}else{const a=p.q?p.c/p.q:0;p.c-=a*x.qty;p.q-=x.qty}}
+  let v=0,c=0;tks.forEach(t=>{const p=P[t];if(p.q<0.0001)return;c+=Math.max(p.c,0);
+   if(p.held){while(p.i+1<p.hd.length&&p.hd[p.i+1][0]<=d)p.i++;v+=p.q*p.cur*p.hd[p.i][1]/p.last}else v+=Math.max(p.c,0)});
+  val.push(v);inv.push(c);fl.push(fw)});
+ return{dates,val,inv,fl}}
+function wDraw(id,full){let st=perStart(),D=dailySeries(st);if(D&&D.dates.length<8){D=dailySeries(fmtD(new Date(Date.now()-30*864e5)))}if(!D||!$('#'+id))return false;
+ const {dates,val,inv}=D,fd=d=>d.slice(8,10)+'.'+d.slice(5,7)+'.'+d.slice(0,4),n=dates.length-1,pv=PRIV,
+ hv=i=>{if(full)return;const a=$('#wl'),b=$('#wv'),c=$('#wi');if(!a)return;const j=(i==null||i<0)?n:i;a.textContent=j==n?'Wert am '+fd(dates[j]):'Wert am '+fd(dates[j]);b.textContent=eur(val[j]);c.textContent=eur(inv[j])},
+ vcur={id:'vcur',afterDraw(c){if(c._hx==null)return;const a=c.chartArea,g=c.ctx;g.save();g.strokeStyle='rgba(255,255,255,.8)';g.lineWidth=1;g.setLineDash([4,4]);g.beginPath();g.moveTo(c._hx,a.top);g.lineTo(c._hx,a.bottom);g.stroke();g.restore()}},
+ edge={id:'edge',afterDatasetsDraw(c){if(pv)return;const a=c.chartArea,g=c.ctx;g.save();g.font='500 12px sans-serif';g.textBaseline='middle';[[inv[n],'#4aa8e8'],[val[n],'#e8e8ea']].forEach(([v,col],k)=>{const y=c.scales.y.getPixelForValue(v),t=eur(v).replace(/\s?€/,''),w=g.measureText(t).width+14;g.fillStyle='#17181d';g.strokeStyle=col;g.lineWidth=1;g.beginPath();g.roundRect?g.roundRect(a.right+4,y-10,w,20,5):g.rect(a.right+4,y-10,w,20);g.fill();g.stroke();g.fillStyle=col;g.textAlign='left';g.fillText(t,a.right+11,y)});g.restore()}},
+ rst=()=>{const c=ch[id];if(c){c._hx=null;c.draw()}hv(null)};
+ chart(id,{type:'line',data:{labels:dates,datasets:[{label:'Portfolio Wert',data:val,borderColor:G,backgroundColor:'transparent',fill:false,tension:0,pointRadius:0,pointHoverRadius:full?4:0,pointHoverBackgroundColor:G,borderWidth:full?2:2.2},{label:'Investiert',data:inv,borderColor:'#9fb6d6',borderDash:[1.5,3.5],borderCapStyle:'round',backgroundColor:'transparent',fill:false,tension:0,stepped:false,pointRadius:0,pointHoverRadius:full?4:0,pointHoverBackgroundColor:'#9fb6d6',borderWidth:1.8}]},
+  options:{responsive:true,maintainAspectRatio:false,animation:false,animations:false,transitions:{active:{animation:{duration:0}}},datasets:{line:{animations:false}},layout:{padding:{top:14,right:pv?4:(full?78:68)}},interaction:{mode:'index',intersect:false},
+   plugins:{legend:{display:false},tooltip:{enabled:!pv,...TT,displayColors:true,callbacks:{title:c=>c.length?fd(dates[c[0].dataIndex])+' (Tagesende)':'',label:c=>' '+c.dataset.label+': '+eur(c.raw),afterBody:c=>c.length?['Differenz: '+(val[c[0].dataIndex]-inv[c[0].dataIndex]>=0?'+':'')+eur(val[c[0].dataIndex]-inv[c[0].dataIndex])]:[]}}},
+   onHover:(e,els,c)=>{if(e.type=='mouseout'||!els.length){if(c._hx!=null)rst();return}c._hx=els[0].element.x;hv(els[0].index);c.draw()},
+   scales:{y:{beginAtZero:true,position:'right',grid:{color:'rgba(255,255,255,.14)',borderDash:[5,5],drawTicks:false},border:{display:false},ticks:{display:full&&!pv,callback:v=>v.toLocaleString('de-DE')}},
+    x:{grid:{display:false},border:{display:false},ticks:{autoSkip:false,maxRotation:0,callback:function(v,i){const d=dates[i];if(i==0||d.slice(0,7)!=dates[i-1].slice(0,7)){const ms=n>400?3:(n>200?2:1),mo=+d.slice(5,7)-1;if(mo%ms==0||i==0)return MN[mo]+' '+d.slice(2,4)}return ''}}}}},plugins:[vcur,edge]});
+ const cv=$('#'+id);if(!cv._w){cv._w=1;['pointerleave','touchend','touchcancel'].forEach(ev=>cv.addEventListener(ev,rst))}return true}
+function wFull(){let d=$('#fsd');if(!d){d=document.createElement('dialog');d.id='fsd';document.body.appendChild(d)}const pn=(PFL.find(p=>p.id==PFC)||{n:''}).n,pl=(PER.find(x=>x[0]==(opt.per||'max'))||[0,''])[1];
+ d.innerHTML=`<div class="fsh"><div><b>${esc(pn)}</b><div class="mu">Wertentwicklung · ${pl}</div></div><button class="fsb" onclick="wClose()" aria-label="Schließen"><svg viewBox="0 0 24 24"><path d="M9 4v5H4M15 4v5h5M9 20v-5H4M15 20v-5h5"/></svg></button></div><div class="fsc"><canvas id="cf"></canvas></div><div class="fsl"><span><i style="background:${G}"></i>Portfolio Wert</span><span><i style="background:#9fb6d6"></i>Investiert</span></div>`;
+ d.onclose=()=>{if(ch.cf){ch.cf.destroy();delete ch.cf}};d.showModal();if(!wDraw('cf',true))d.querySelector('.fsc').innerHTML='<div class="mu" style="padding:24px">Für die Detailansicht wird die tägliche Kurshistorie benötigt. Sie wird beim Kursabruf über den Worker geladen.</div>'}
+function wClose(){const d=$('#fsd');if(d)d.close()}
 async function fetchH(){const u=gw();if(!u||navigator.onLine===false)return;const today=fmtD(new Date()),me=mEnds(),ds=[...new Set([...Object.values(perDates()),...me])].join(',');
  const H=withRaw(holdings).filter(h=>h.q>0.0001),want=H.filter(h=>{const hi=HI[h.t];return !(hi&&hi.d==today&&Object.keys(hi.r||{}).length>=2&&me.every(d=>d in (hi.r||{})))&&rawTx().some(x=>x.ticker==h.t&&x.isin)});if(!want.length)return;
  await Promise.all(want.map(async h=>{const isin=(rawTx().find(x=>x.ticker==h.t&&x.isin)||{}).isin,q=QT[h.t]||{};
@@ -494,44 +538,53 @@ function valSeries(ks,H){const T=[...S.tx].filter(t=>['buy','sell'].includes(t.t
 
 const BM=[['^GSPC','S&P 500','#e09f3a'],['^GDAXI','DAX','#5f84ac'],['VWCE.DE','FTSE All-World','#c0452e'],['EUNL.DE','MSCI World','#8a5a9a'],['^NDX','Nasdaq 100','#a3d1be'],['^STOXX50E','Euro Stoxx 50','#e5d8a8']];
 let BH={};try{BH=JSON.parse(localStorage.getItem('bmh')||'{}')}catch(e){}
-function perfSeries(){const H=holdings().filter(h=>h.q>0.0001);if(!H.length||!H.some(h=>qP(h.t)>0))return null;
+function perfSeriesM(full){const H=holdings().filter(h=>h.q>0.0001);if(!H.length||!H.some(h=>qP(h.t)>0))return null;
  const first=rawTx().reduce((m,t)=>t.date<m?t.date:m,'9999-99-99').slice(0,7),cur=addM(new Date(),0),ks=[];for(let k=first;k<=cur;k=nx(k))ks.push(k);
  const VS=valSeries(ks,H);if(!VS)return null;const INV=costSeries(ks),fl=ks.map((k,i)=>INV[i]-(i?INV[i-1]:0));
  let idx=1;const out=[];let i0=-1;
  for(let i=0;i<ks.length;i++){if(VS[i]==null){idx=1;out.length=0;i0=-1;continue}
   if(i0<0){if(INV[i]<=0)continue;i0=i;out.push({k:ks[i],v:0});continue}
   const b=VS[i-1]+fl[i];if(!(b>0)||VS[i-1]==null){out.push({k:ks[i],v:(idx-1)*100});continue}idx*=VS[i]/b;out.push({k:ks[i],v:(idx-1)*100})}
- if(out.length<2)return null;const DT=out.map(o=>o.k>=cur?fmtD(new Date()):fmtD(new Date(+o.k.slice(0,4),+o.k.slice(5),0)));return{out,DT}}
+ if(out.length<2)return null;const DT=out.map(o=>o.k>=cur?fmtD(new Date()):fmtD(new Date(+o.k.slice(0,4),+o.k.slice(5),0)));return{out,DT,daily:false}}
+function perfSeries(full){const D=dailySeries('0000-00-00');if(D){const n=D.dates.length;let idx=1,I=[],s0=-1;
+  for(let i=0;i<n;i++){if(s0<0){if(D.inv[i]>0&&D.val[i]>0){s0=i;I.push(1)}else I.push(null);continue}
+   const b=D.val[i-1]+D.fl[i];if(b>0&&D.val[i]>0)idx*=D.val[i]/b;I.push(idx)}
+  if(s0>=0){let a=s0;if(!full){const st=perStart();while(a<n-1&&D.dates[a]<st)a++;if(a>=n-2)a=Math.max(s0,n-30)}
+   const out=[],DT=[];for(let i=a;i<n;i++){if(I[i]==null)continue;out.push({k:D.dates[i],v:(I[i]/I[a]-1)*100});DT.push(D.dates[i])}
+   if(out.length>2)return{out,DT,daily:true}}}
+ return perfSeriesM(full)}
 function perfSel(){try{return JSON.parse(localStorage.getItem('bmsel'))||['^GSPC','^GDAXI','VWCE.DE']}catch(e){return['^GSPC','^GDAXI','VWCE.DE']}}
 function bmToggle(s){let a=perfSel();a=a.includes(s)?a.filter(x=>x!=s):[...a,s];try{localStorage.setItem('bmsel',JSON.stringify(a))}catch(e){}render();bmLoad()}
-function bmSeries(s,DT){const h=BH[s];if(!h||!h.r)return null;const r=h.r,d0=DT[0];if(!(r[d0]>0))return null;const v=DT.map(d=>r[d]>0?(r[d]/r[d0]-1)*100:null);return v.some(x=>x==null)?null:v}
-async function bmLoad(){const u=gw();if(!u||navigator.onLine===false)return;const P=perfSeries();if(!P)return;const today=fmtD(new Date()),ds=[...new Set(P.DT)],want=perfSel().filter(s=>{const h=BH[s];return !(h&&h.d==today&&ds.every(d=>d in h.r))});if(!want.length)return;
- await Promise.all(want.map(async s=>{try{const ck=[];for(let i=0;i<ds.length;i+=8)ck.push(ds.slice(i,i+8).join(','));const rs=await Promise.all(ck.map(async c=>{try{const j=await(await fetch(`${u}/hist?isin=${encodeURIComponent(s)}&sym=${encodeURIComponent(s)}&d=${c}`)).json();return j.ok&&j.r?j.r:null}catch(e){return null}})),r={};let ok=0;rs.forEach(x=>{if(x){Object.assign(r,x);ok++}});if(ok)BH[s]={d:today,r}}catch(e){}}));
- try{localStorage.setItem('bmh',JSON.stringify(BH))}catch(e){}if(tab=='dash'&&opt.dtab=='p'&&!$('#dg').open)render()}
+let BD={};try{BD=JSON.parse(localStorage.getItem('bmd')||'{}')}catch(e){}
+function bmSeries(s,DT,daily){if(daily){const h=BD[s]&&BD[s].p;if(!h||h.length<5)return null;let j=0;const px=d=>{while(j+1<h.length&&h[j+1][0]<=d)j++;return h[j][1]};if(h[0][0]>DT[0]&&(new Date(h[0][0])-new Date(DT[0]))/864e5>7)return null;j=0;const p0=px(DT[0]);j=0;return DT.map(d=>(px(d)/p0-1)*100)}
+ const h=BH[s];if(!h||!h.r)return null;const r=h.r,d0=DT[0];if(!(r[d0]>0))return null;const v=DT.map(d=>r[d]>0?(r[d]/r[d0]-1)*100:null);return v.some(x=>x==null)?null:v}
+async function bmLoad(){const u=gw();if(!u||navigator.onLine===false)return;const today=fmtD(new Date()),want=perfSel().filter(s=>{const h=BD[s];return !(h&&h.d==today)});if(!want.length)return;
+ await Promise.all(want.map(async s=>{try{const j=await(await fetch(`${u}/series?isin=${encodeURIComponent(s)}&sym=${encodeURIComponent(s)}&range=5y`)).json();if(j.ok&&j.pts&&j.pts.length>5)BD[s]={d:today,p:j.pts}}catch(e){}}));
+ try{localStorage.setItem('bmd',JSON.stringify(BD))}catch(e){}if(tab=='dash'&&opt.dtab=='p'&&!$('#dg').open)render()}
 function perfCard(){const P=perfSeries(),fd=d=>d.slice(8,10)+'.'+d.slice(5,7)+'.'+d.slice(0,4),sel=perfSel();
  if(!P)return `<div class="card"><div class="mu">Für die Performance werden Kurse und Kurshistorie benötigt. Sie werden beim Kursabruf über den Worker geladen.</div></div>`;
  const last=P.out[P.out.length-1].v,sg=v=>(v>=0?'':'')+PCT(v);
  return `<div class="card"><div class="row" style="margin:0 0 12px"><select id="pfm" class="pfsel"><option>TTWROR</option></select></div>
  <div class="row" style="align-items:center;margin-bottom:8px"><div class="mu" id="pl1" style="font-size:15px">TTWROR bis ${fd(P.DT[P.DT.length-1])} (Aktuell)</div><span id="pl2" class="pl ${last>=0?'up':'dn'}">${sg(last)}</span></div>
  <div class="cv s"><canvas id="c6"></canvas></div>
- <div class="mu" style="font-size:12px;margin-top:8px">Zeitgewichtete Kursrendite des Portfolios, ohne Dividenden, aus Monatsendwerten.</div></div>
- <div class="card"><h3 style="font-size:19px;color:var(--tx);margin:0 0 10px">Im Vergleich</h3><div class="bmw">${BM.map(([s,n,c])=>{const on=sel.includes(s),v=on?bmSeries(s,P.DT):null;return `<button class="bmc ${on?'on':''}" onclick="bmToggle('${s}')"><i style="background:${c}"></i>${n}${on?` <b>${v?PCT(v[v.length-1]):'…'}</b>`:''}</button>`}).join('')}</div>
+ <div class="mu" style="font-size:12px;margin-top:8px">Zeitgewichtete Kursrendite des Portfolios, ohne Dividenden, aus ${P.daily?'Tageswerten':'Monatsendwerten'}.</div></div>
+ <div class="card"><h3 style="font-size:19px;color:var(--tx);margin:0 0 10px">Im Vergleich</h3><div class="bmw">${BM.map(([s,n,c])=>{const on=sel.includes(s),v=on?bmSeries(s,P.DT,P.daily):null;return `<button class="bmc ${on?'on':''}" onclick="bmToggle('${s}')"><i style="background:${c}"></i>${n}${on?` <b>${v?PCT(v[v.length-1]):'…'}</b>`:''}</button>`}).join('')}</div>
  <div class="mu" style="font-size:12px;margin-top:10px">Antippen zum Ein- und Ausblenden. Kurse der Vergleichswerte stammen vom Worker (Yahoo).</div></div>`}
-function perfDraw(){const P=perfSeries();if(!P||!$('#c6'))return;const sel=perfSel(),fd=d=>d.slice(8,10)+'.'+d.slice(5,7)+'.'+d.slice(0,4),lab=k=>MN[+k.slice(5)-1]+' '+k.slice(2,4),last=P.out[P.out.length-1].v,
- ds=[{label:'Portfolio',data:P.out.map(o=>o.v),borderColor:G,backgroundColor:'rgba(127,207,174,.18)',fill:'origin',tension:.15,pointRadius:0,pointHoverRadius:0,borderWidth:2.4}];
- BM.forEach(([s,n,c])=>{if(!sel.includes(s))return;const v=bmSeries(s,P.DT);if(v)ds.push({label:n,data:v,borderColor:c,backgroundColor:'transparent',fill:false,tension:.15,pointRadius:0,pointHoverRadius:0,borderWidth:1.6})});
- const hv=i=>{const a=$('#pl1'),b=$('#pl2');if(!a)return;const j=(i==null||i<0)?P.out.length-1:i,v=P.out[j].v;a.textContent='TTWROR bis '+fd(P.DT[j])+(j==P.out.length-1?' (Aktuell)':'');b.textContent=PCT(v);b.className='pl '+(v>=0?'up':'dn')},
- vcur={id:'vcur',afterDraw(c){if(c._hx==null)return;const a=c.chartArea,g=c.ctx;g.save();g.strokeStyle='rgba(255,255,255,.85)';g.lineWidth=1.5;g.beginPath();g.moveTo(c._hx,a.top);g.lineTo(c._hx,a.bottom);g.stroke();g.restore()}},
+function perfDraw(){const P=perfSeries();if(!P||!$('#c6'))return;const sel=perfSel(),fd=d=>d.slice(8,10)+'.'+d.slice(5,7)+'.'+d.slice(0,4),n=P.out.length-1,
+ ds=[{label:'Portfolio',data:P.out.map(o=>o.v),borderColor:G,backgroundColor:'rgba(127,207,174,.18)',fill:'origin',tension:.1,pointRadius:0,pointHoverRadius:0,borderWidth:2.4}];
+ BM.forEach(([s,nm,c])=>{if(!sel.includes(s))return;const v=bmSeries(s,P.DT,P.daily);if(v)ds.push({label:nm,data:v,borderColor:c,backgroundColor:'transparent',fill:false,tension:.1,pointRadius:0,pointHoverRadius:0,borderWidth:1.6})});
+ const hv=i=>{const a=$('#pl1'),b=$('#pl2');if(!a)return;const j=(i==null||i<0)?n:i,v=P.out[j].v;a.textContent='TTWROR bis '+fd(P.DT[j])+(j==n?' (Aktuell)':'');b.textContent=PCT(v);b.className='pl '+(v>=0?'up':'dn')},
+ vcur={id:'vcur',afterDraw(c){if(c._hx==null)return;const a=c.chartArea,g=c.ctx;g.save();g.strokeStyle='rgba(255,255,255,.8)';g.lineWidth=1;g.setLineDash([4,4]);g.beginPath();g.moveTo(c._hx,a.top);g.lineTo(c._hx,a.bottom);g.stroke();g.restore()}},
  mm={id:'mm',afterDatasetsDraw(c){const a=c.chartArea,g=c.ctx;let mx=-1e9,mi=0;c.data.datasets[0].data.forEach((v,i)=>{if(v!=null&&v>mx){mx=v;mi=i}});g.save();g.font='500 12px sans-serif';g.fillStyle='#e8e8ea';g.textBaseline='bottom';g.textAlign='left';g.fillText('0,0 %',a.left+8,Math.max(Math.min(c.scales.y.getPixelForValue(0)-4,a.bottom-4),a.top+14));const p=c.getDatasetMeta(0).data[mi];if(p&&mx>0){const right=p.x>a.left+(a.right-a.left)*.6;g.textAlign=right?'right':'left';g.fillText(PCT(mx),right?Math.min(p.x,a.right):p.x,Math.max(p.y-8,a.top+12))}g.restore()}},
- rst=()=>{const c=ch.c6;if(c){c._hx=null;c.draw()}hv(null)};
- chart('c6',{type:'line',data:{labels:P.out.map(o=>lab(o.k)),datasets:ds},options:{animation:false,animations:false,transitions:{active:{animation:{duration:0}}},layout:{padding:{top:14,right:4}},plugins:{legend:{display:false},tooltip:{enabled:false}},interaction:{mode:'index',intersect:false},
+ rst=()=>{const c=ch.c6;if(c){c._hx=null;c.draw()}hv(null)},N=P.DT.length;
+ chart('c6',{type:'line',data:{labels:P.DT,datasets:ds},options:{animation:false,animations:false,transitions:{active:{animation:{duration:0}}},layout:{padding:{top:14,right:4}},plugins:{legend:{display:false},tooltip:{enabled:true,...TT,callbacks:{title:c=>c.length?fd(P.DT[c[0].dataIndex])+(P.daily?' (Tagesende)':''):'',label:c=>' '+c.dataset.label+': '+PCT(c.raw)}}},interaction:{mode:'index',intersect:false},
   onHover:(e,els,c)=>{if(e.type=='mouseout'||!els.length){if(c._hx!=null)rst();return}c._hx=els[0].element.x;hv(els[0].index);c.draw()},
-  scales:{y:{grid:{color:'rgba(255,255,255,.14)',borderDash:[5,5],drawTicks:false},border:{display:false},ticks:{display:false}},x:{grid:{display:false},border:{display:false},ticks:{maxTicksLimit:5,maxRotation:0}}}},plugins:[vcur,mm]});
+  scales:{y:{grid:{color:'rgba(255,255,255,.14)',borderDash:[5,5],drawTicks:false},border:{display:false},ticks:{display:false}},x:{grid:{display:false},border:{display:false},ticks:{autoSkip:false,maxRotation:0,callback:function(v,i){const d=P.DT[i],ms=N>400?3:(N>200?2:1);if(i==0||d.slice(0,7)!=P.DT[i-1].slice(0,7)){const mo=+d.slice(5,7)-1;if(mo%ms==0||i==0)return MN[mo]+' '+d.slice(2,4)}return ''}}}}},plugins:[vcur,mm]});
  const cv=$('#c6');['pointerleave','touchend','touchcancel'].forEach(ev=>cv.addEventListener(ev,rst));bmLoad()}
 function rendDlg(){const d=$('#dg'),H=holdings().filter(h=>h.q>0.0001),cost=H.reduce((s,h)=>s+h.cost,0),hasQ=H.some(h=>qP(h.t)>0),mv=H.reduce((s,h)=>s+mvOf(h),0),
  T=S.tx,first=T.reduce((m,t)=>t.date<m?t.date:m,'9999-99-99').slice(0,10),buy=T.filter(t=>t.type=='buy').reduce((s,t)=>s+t.amount,0),sell=T.filter(t=>t.type=='sell').reduce((s,t)=>s+t.amount,0),
  unr=hasQ?mv-cost:0,rl=realized().reduce((s,e)=>s+e.g,0),dv=T.filter(t=>t.type=='div'),dN=dv.reduce((s,t)=>s+t.amount,0),dG=dv.reduce((s,t)=>s+(t.gross>t.amount+.005?t.gross:t.amount),0),zi=T.filter(t=>t.type=='int').reduce((s,t)=>s+t.amount,0),
- sum=unr+rl+dG+zi,tax=dN-dG,fee=0,net=sum+tax+fee;let ir=null;try{ir=portIrr(H)}catch(e){}const P=perfSeries(),tw=P?P.out[P.out.length-1].v:null,
+ sum=unr+rl+dG+zi,tax=dN-dG,fee=0,net=sum+tax+fee;let ir=null;try{ir=portIrr(H)}catch(e){}const P=perfSeries(true),tw=P?P.out[P.out.length-1].v:null,
  c=v=>`<span class="${v<0?'neg':'gr'}">${v>0?'+':''}${eur(v)}</span>`,p=v=>cost>0?`<span class="${v<0?'neg':'gr'}">${v>0?'+':''}${PCT(v/cost*100)}</span>`:'–',
  r=(l,a,b,o={})=>`<div class="rr${o.b?' rb':''}"><span>${l}</span><span class="rv">${a}${b!==undefined?`<em>${b}</em>`:''}</span></div>`;
  d.innerHTML=`<h3 style="margin-top:0;font-size:22px;color:var(--tx)">Rendite</h3>
@@ -556,7 +609,7 @@ function dash(){seedC();const irT0=(()=>{try{return portIrr(holdings().filter(h=
  <div class="kpi" style="cursor:pointer" onclick="rendDlg()"><small>Realisierte Gewinne ⓘ</small><b class="${rP<0?'neg':'gr'}">${eur(rP)}</b>${pl(rP,cost)}</div><div class="kpi"><small>Dividenden (${{b:'brutto',e:'erhalten',n:'netto'}[bnM()]})</small><b class="gr">${eur(dP)}</b>${pl(dP,cost)}</div></div>
  <div style="text-align:right;margin:10px 0"><a class="more" onclick="tab='hold';render()">Alle Details anzeigen</a></div>
  <div class="stabs"><button class="${dt=='d'?'on':''}" onclick="opt.dtab='d';render()">Dividenden</button><button class="${dt=='w'?'on':''}" onclick="opt.dtab='w';render()">Wertentwicklung</button><button class="${dt=='p'?'on':''}" onclick="opt.dtab='p';render()">Performance</button></div>
- ${dt=='p'?perfCard():`<div class="card">${dt=='w'?`<div class="row" style="align-items:flex-start;margin-bottom:10px"><div><div class="mu" id="wl" style="font-size:15px">Wert am ${dm(now.toISOString().slice(0,10))}</div><b id="wv" style="font-size:26px">${eur(hasQ?mvT:cost)}</b></div><div style="text-align:right"><div class="mu" style="font-size:15px">Investiert</div><span id="wi" style="font-size:20px;color:var(--mu)">${eur(cost)}</span></div></div>`:`<div class="row"><span class="mu">Dividenden im Zeitraum</span><b>${eur(dP)}</b></div>`}<div class="cv s"><canvas id="${dt=='w'?'c0':'c4'}"></canvas></div>${dt=='w'?`<div class="mu" style="font-size:12px;margin-top:8px;display:flex;gap:16px;flex-wrap:wrap"><span><b style="color:${G}">━━</b> Kurs (Portfolio Wert)</span><span><b style="color:#a0a2a8">╍╍</b> Investiert</span></div>`:''}</div>`}</div></div>${secT(H,divs,st)}${secA(divs)}`;
+ ${dt=='p'?perfCard():`<div class="card" style="position:relative">${dt=='w'?`<button class="wfs" onclick="wFull()" title="Vollbild"><svg viewBox="0 0 24 24"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/></svg></button><div class="row" style="align-items:flex-start;margin-bottom:10px;padding-right:34px"><div><div class="mu" id="wl" style="font-size:15px">Wert am ${dm(now.toISOString().slice(0,10))}</div><b id="wv" style="font-size:26px">${eur(hasQ?mvT:cost)}</b></div><div style="text-align:right"><div class="mu" style="font-size:15px">Investiert</div><span id="wi" style="font-size:20px;color:var(--mu)">${eur(cost)}</span></div></div>`:`<div class="row"><span class="mu">Dividenden im Zeitraum</span><b>${eur(dP)}</b></div>`}<div class="cv s"><canvas id="${dt=='w'?'c0':'c4'}"></canvas></div>${dt=='w'?`<div class="mu" style="font-size:12px;margin-top:8px;display:flex;gap:16px;flex-wrap:wrap"><span><b style="color:${G}">━━</b> Kurs (Portfolio Wert)</span><span><b style="color:#a0a2a8">╍╍</b> Investiert</span></div>`:''}</div>`}</div></div>${secT(H,divs,st)}${secA(divs)}`;
  chart('c5',{type:'doughnut',data:{labels:H.map(h=>h.t),datasets:[{data:H.map(h=>mvOf(h)),backgroundColor:H.map(h=>tcol(h.t)),borderWidth:0,borderColor:'transparent',hoverBorderWidth:0,spacing:0,borderRadius:0}]},options:{rotation:-90,circumference:180,cutout:'78%',plugins:{legend:{display:false},tooltip:{...TT,callbacks:{title:c=>c.length?(nameOf(c[0].label)||c[0].label):'',label:c=>`${eur(c.raw)} · ${PCT(mvT?c.raw/mvT*100:0)}`}}}}});
  const lab=k=>MN[+k.slice(5)-1]+' '+k.slice(2,4);
  var VS=(dt=='w'&&hasQ)?valSeries(ks,H):null;if(dt=='p')perfDraw();
@@ -572,7 +625,7 @@ function dash(){seedC();const irT0=(()=>{try{return portIrr(holdings().filter(h=
     plugins:{legend:{display:false},tooltip:{enabled:false}},interaction:{mode:'index',intersect:false},
     onHover:(e,els,c)=>{if(e.type=='mouseout'||!els.length){if(c._hx!=null)rst();return}c._hx=els[0].element.x;hv(els[0].index);c.draw()},
     scales:{y:{beginAtZero:true,grid:{color:'rgba(255,255,255,.14)',borderDash:[5,5],drawTicks:false},border:{display:false},ticks:{display:false}},x:{grid:{display:false},border:{display:false},ticks:{maxTicksLimit:5,maxRotation:0}}}},plugins:[vcur,mm]});
-  const cv=$('#c0');['pointerleave','touchend','touchcancel'].forEach(ev=>cv.addEventListener(ev,rst))}
+  const cv=$('#c0');['pointerleave','touchend','touchcancel'].forEach(ev=>cv.addEventListener(ev,rst));wDraw('c0',false)}
  else if(dt=='d'){const k2=[...ks];for(let i=1;i<=Math.max(6,11-now.getMonth());i++)k2.push(addM(now,i));
   chart('c4',{type:'bar',data:{labels:k2.map(lab),datasets:[{label:'Erhalten',data:k2.map(k=>k>cur?null:divs.filter(t=>ym(t.date)==k).reduce((s,t)=>s+t.amount,0)),backgroundColor:P[1],borderRadius:0},{label:'Prognose',data:k2.map(k=>k>cur?fc.filter(t=>t.ym==k).reduce((s,t)=>s+t.a,0):null),backgroundColor:HP,borderColor:HB,borderWidth:1,borderRadius:0}]},options:{plugins:{legend:{display:false},tooltip:{...TT,callbacks:{label:c=>c.dataset.label+': '+eur(c.raw)}}},scales:{x:{stacked:true,grid:{display:false}},y:{stacked:true,ticks:{callback:EY}}}}})}}
 function crkSplit(by){const g={},n={},add=(k,v,c)=>{g[k]=(g[k]||0)+v;n[k]=(n[k]||0)+c},cn=mkCanon();
