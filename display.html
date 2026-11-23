@@ -36,19 +36,26 @@ body.paused #pz{display:inline}
 .up{color:var(--neon)}.dn{color:var(--neg)}.mu{color:var(--mu)}
 .lbl{font-size:3.2vh;color:var(--mu);font-weight:500;letter-spacing:.01em}
 /* Portfolio */
-.pf{display:grid;grid-template-columns:.95fr 1.25fr;gap:3vw;height:100%;align-items:center}
-.pfl{display:flex;flex-direction:column;justify-content:center}
+.pf{display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;text-align:center}
+.pf .big{font-size:31vh}
+.pf .chips{justify-content:center;margin-top:4vh}
+.pf .chip{display:flex;align-items:center;gap:1.6vw;font-size:4.6vh;padding:1.2vh 2vw}
+.pf .chip .sep{width:1px;height:4vh;background:var(--ln)}
+.pf .chip small{font-size:.55em;color:var(--mu);font-weight:500;margin-right:.6vw}
+.mvc{display:grid;grid-template-columns:1fr 1fr;column-gap:4vw;height:100%;align-content:center;align-items:start}
+.mvc .col{display:flex;flex-direction:column;justify-content:flex-start;gap:2.6vh}
+.mvc .hd2{font-size:2.8vh;color:var(--mu);font-weight:600;letter-spacing:.04em;text-transform:uppercase;margin-bottom:.4vh}
 .big{font-size:25vh;font-weight:650;line-height:1;margin-top:0;letter-spacing:-.04em}
 .big small{font-size:.42em;font-weight:500;color:var(--mu);margin-left:.6vw}
 .chips{display:flex;gap:1vw;margin-top:3.2vh;flex-wrap:wrap}
 .chip{background:var(--card);border:1px solid var(--ln);border-radius:2vh;padding:1.4vh 1.4vw;font-size:5vh;font-weight:650}
 .chip>span.sub{font-weight:500;color:var(--mu);font-size:.8em;margin-left:.5vw}
 .mov{display:flex;flex-direction:column;justify-content:center;gap:3.2vh}
-.mv1{display:grid;grid-template-columns:19vw 1fr 11vw;align-items:center;gap:1.2vw;font-size:6.2vh;font-weight:550;opacity:0;transform:translateX(3vw);transition:opacity .7s,transform .7s}
+.mv1{display:grid;grid-template-columns:17vw 1fr 9vw;align-items:center;gap:1vw;font-size:5vh;font-weight:550;opacity:0;transform:translateX(3vw);transition:opacity .7s,transform .7s}
 .on .mv1{opacity:1;transform:none}
 .mv1 .n{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.mv1 .tr{height:3.6vh;background:var(--card2);border-radius:1vh;position:relative;overflow:hidden}
-.mv1 .tr i{position:absolute;top:0;bottom:0;left:50%;border-radius:1vh;transition:width 1.1s cubic-bezier(.2,.7,.2,1)}
+.mv1 .tr{height:2.8vh;background:var(--card2);border-radius:1vh;position:relative;overflow:hidden}
+.mv1 .tr i{position:absolute;top:0;bottom:0;left:0;border-radius:1vh;transition:width 1.1s cubic-bezier(.2,.7,.2,1)}
 .mv1 .p{text-align:right;font-weight:700}
 /* Kacheln */
 .tiles{display:grid;grid-template-columns:repeat(3,1fr);gap:1.4vw;height:62%}
@@ -78,9 +85,9 @@ body.paused #pz{display:inline}
 .sum{margin-top:2.6vh;font-size:3.2vh;color:var(--mu)}
 .sum b{color:var(--tx)}
 /* Chart */
-.chh{display:flex;gap:3vw;font-size:3.2vh;color:var(--mu);margin-bottom:1.4vh}
+.chh{display:flex;gap:3vw;font-size:3.2vh;color:var(--mu);margin-bottom:2vh}
 .chh b{color:var(--tx);font-size:1.15em}
-.lg{display:flex;align-items:center;gap:.5vw;font-size:2.6vh;white-space:nowrap}.lg i{display:inline-block;width:1.8vh;height:1.8vh;border-radius:.4vh;margin-left:.6vw}.lg i.hz{background:repeating-linear-gradient(135deg,#9aa0a8 0 3px,transparent 3px 7px);border:1px solid #9aa0a8}
+.lg{display:flex;align-items:center;gap:1.6vw;font-size:3.1vh;color:#c4c7cc;white-space:nowrap;overflow:hidden;width:100%}.lg span{display:inline-flex;align-items:center;gap:.5vw}.lg i{display:inline-block;width:2.4vh;height:2.4vh;border-radius:.6vh}.lg .lgp{margin-left:auto;color:var(--mu)}.lg i.hz{background:repeating-linear-gradient(135deg,#8d9098 0 3px,transparent 3px 7px);border:1px solid #8d9098}
 #chart{width:100%;height:82%}
 #chart .bb{transform-box:fill-box;transform-origin:bottom;transform:scaleY(0);transition:transform 1s cubic-bezier(.2,.7,.2,1)}
 .on #chart .bb{transform:scaleY(1)}
@@ -107,6 +114,7 @@ body.priv .pv{filter:blur(2.4vh)}
 <div id="st">
  <div class="hd"><b id="ttl">Portfolio</b><span id="pfn"></span><span class="sp"></span><span id="pz">⏸ pausiert</span><span id="clk"></span></div>
  <section class="sl" id="v-pf"></section>
+ <section class="sl" id="v-mv"></section>
  <section class="sl" id="v-dv"></section>
  <section class="sl" id="v-nx"></section>
  <section class="sl" id="v-ch"></section>
@@ -122,6 +130,7 @@ body.priv .pv{filter:blur(2.4vh)}
  <div class="row"><b>Ansichten</b> <span class="hint">(Haken = anzeigen, Zahl = Sekunden; leer = Standard)</span></div>
  <div class="row" id="cvw">
   <label><input type="checkbox" value="pf"> Portfolio-Wert &amp; Tag <input type="number" data-d="pf" min="3" max="600" style="width:64px"></label>
+  <label><input type="checkbox" value="mv"> Gewinner &amp; Verlierer <input type="number" data-d="mv" min="3" max="600" style="width:64px"></label>
   <label><input type="checkbox" value="dv"> Dividenden Monat/Jahr <input type="number" data-d="dv" min="3" max="600" style="width:64px"></label>
   <label><input type="checkbox" value="nx"> Nächste Dividenden <input type="number" data-d="nx" min="3" max="600" style="width:64px"></label>
   <label><input type="checkbox" value="ch"> Monats-Balkendiagramm <input type="number" data-d="ch" min="3" max="600" style="width:64px"></label></div>
@@ -134,13 +143,13 @@ body.priv .pv{filter:blur(2.4vh)}
 </dialog>
 <script>
 'use strict';
-const VER='2026-11-23.8'; // bei jeder Änderung hochzählen – die Anzeige lädt sich dann selbst neu
+const VER='2026-11-23.11'; // bei jeder Änderung hochzählen – die Anzeige lädt sich dann selbst neu
 const $=s=>document.querySelector(s);
 const LS={get(k,d){try{const v=localStorage.getItem(k);return v==null?d:JSON.parse(v)}catch(e){return d}},raw(k){try{return localStorage.getItem(k)}catch(e){return null}},set(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}}};
-const VIEWS={pf:'Portfolio',dv:'Dividenden',nx:'Nächste Dividenden',ch:'Dividenden pro Monat'};
+const VIEWS={pf:'Portfolio',mv:'Gewinner & Verlierer heute',dv:'Dividenden',nx:'Nächste Dividenden',ch:'Dividenden pro Monat'};
 
 // ---------- Konfiguration ----------
-let C=Object.assign({w:'',c:'',p:'',views:['pf','dv','nx','ch'],iv:12,dur:{},tr:'glide',sp:'n',priv:false},LS.get('dd_cfg',{}));if(!C.dur)C.dur={};
+let C=Object.assign({w:'',c:'',p:'',views:['pf','mv','dv','nx','ch'],iv:12,dur:{},tr:'glide',sp:'n',priv:false},LS.get('dd_cfg',{}));if(!C.dur)C.dur={};if(!C.m5){if(!C.views.includes('mv')){const i=C.views.indexOf('pf');C.views.splice(i<0?0:i+1,0,'mv')}C.m5=1}
 if(!C.w)C.w=LS.raw('divworker')||'';
 if(!C.c)C.c=(LS.raw('sycode')||'').trim();
 if(location.hash.length>1){const h=new URLSearchParams(location.hash.slice(1));
@@ -237,7 +246,7 @@ function fcMonth(h,k){const m=D.meta[h.t]||{},past=D.tx.filter(t=>t.type=='div'&
  return{a:avg,day:+lt.date.slice(8,10)}}
 const dayIn=(k,d)=>{const n=new Date(+k.slice(0,4),+k.slice(5),0).getDate();return k+'-'+String(Math.min(n,Math.max(1,d||15))).padStart(2,'0')};
 // Farben je Titel (stabil)
-const PAL=['#46f59a','#4fb3ff','#b48cff','#ffb547','#ff7aa8','#3ee0d0','#e8e36a','#ff8a5c','#8fa3ff','#9be27a'];
+const PAL=['#5fae8a','#5f8fbf','#8f82bd','#c2a165','#b97890','#5ea5a0','#a9a76c','#bb8668','#7685b5','#8aa877'];
 let COL={};const colOf=t=>COL[t]||'#6b7079';
 function calc(){
  const today=iso(new Date()),H=holdings(),act=H.filter(h=>h.q>1e-4);
@@ -273,14 +282,14 @@ const cu=(v,f='eur',cls='')=>`<span class="num ${/^pc/.test(f)?'':'pv'} ${cls}" 
 
 // ---------- Ansichten ----------
 function vPF(R){const dc=R.val-R.day,dp=dc?R.day/dc*100:0,gp=R.cost?R.gain/R.cost*100:0;
- const top=R.mov.slice(0,3),flop=R.mov.slice(-2).reverse().filter(x=>!top.includes(x)),L=[...top,...flop].slice(0,5).sort((a,b)=>b.c-a.c);
- const mx=Math.max(1,...L.map(x=>Math.abs(x.c)));
- return`<div class="pf"><div class="pfl">
- <div class="big num pv" data-cu="${R.val}" data-f="eur0">${eur0(0)}</div>
- <div class="chips"><div class="chip ${dp>=0?'up':'dn'}">${cu(dp,'pct','')}</div>
- <div class="chip ${gp>=0?'up':'dn'}">${cu(gp,'pct','')}</div>${R.qc<R.n?`<div class="chip" style="font-size:2.8vh;color:var(--mu)">${R.n-R.qc} ohne Kurs</div>`:''}</div></div>
- <div class="mov">${L.length?L.map((x,i)=>`<div class="mv1" style="transition-delay:${.15+i*.08}s"><span class="n">${esc(short(x.n))}</span><div class="tr"><i style="width:0;${x.c>=0?'left:50%':'right:50%;left:auto'};background:${x.c>=0?'var(--neon)':'var(--neg)'}" data-w="${Math.abs(x.c)/mx*50}"></i></div><span class="p num ${x.c>=0?'up':'dn'}">${pct(x.c)}</span></div>`).join(''):'<div class="mu" style="font-size:4vh">Noch keine Tageskurse.</div>'}</div></div>`}
-
+ return`<div class="pf"><div class="big num pv" data-cu="${R.val}" data-f="eur0">${eur0(0)}</div>
+ <div class="chips"><div class="chip"><span><small>heute</small><span class="${dp>=0?'up':'dn'}">${cu(dp,'pct')}</span></span><span class="sep"></span><span><small>gesamt</small><span class="${gp>=0?'up':'dn'}">${cu(gp,'pct')}</span></span></div>
+ ${R.qc<R.n?`<div class="chip" style="font-size:2.8vh;color:var(--mu)">${R.n-R.qc} ohne Kurs</div>`:''}</div></div>`}
+function vMV(R){const up=R.mov.filter(x=>x.c>0).slice(0,5),dn=R.mov.filter(x=>x.c<0).sort((a,b)=>a.c-b.c).slice(0,5),mx=Math.max(.01,...R.mov.map(x=>Math.abs(x.c)));
+ const row=(x,i,pos)=>`<div class="mv1" style="transition-delay:${.1+i*.07}s"><span class="n">${esc(short(x.n))}</span><div class="tr"><i style="width:0;background:${pos?'var(--neon)':'var(--neg)'}" data-w="${Math.abs(x.c)/mx*100}"></i></div><span class="p num ${pos?'up':'dn'}">${pct(x.c)}</span></div>`;
+ if(!R.mov.length)return`<div class="empty"><b>Noch keine Tageskurse</b><span class="mu">Sobald Kurse geladen sind, erscheinen hier die Gewinner und Verlierer des Tages.</span></div>`;
+ return`<div class="mvc"><div class="col"><div class="hd2 up">▲ Gewinner</div>${up.length?up.map((x,i)=>row(x,i,true)).join(''):'<div class="mu" style="font-size:3.4vh">Heute keine Gewinner</div>'}</div>
+ <div class="col"><div class="hd2 dn">▼ Verlierer</div>${dn.length?dn.map((x,i)=>row(x,i,false)).join(''):'<div class="mu" style="font-size:3.4vh">Heute keine Verlierer</div>'}</div></div>`}
 function vDV(R){const yr=R.dy+R.fyRest,p=yr?R.dy/yr*100:0;
  return`<div class="tiles">
  <div class="tile"><div class="lbl">Diesen Monat</div><div class="v up">${cu(R.dm)}</div><div class="s">${MON[new Date().getMonth()]} ${new Date().getFullYear()}</div></div>
@@ -300,20 +309,20 @@ function vNX(R){const L=R.fc.slice(0,6);
 
 function vCH(R){const B=R.bars,W=1840,Hh=290,pad=10,top=30,mx=Math.max(1,...B.map(b=>b.a+b.f)),bw=(W-pad)/B.length,iw=bw*.64;
  let g='';B.forEach((b,i)=>{const x=pad+i*bw+(bw-iw)/2,yb=top+Hh,dl=i*.035;let y=yb;
-  const seg=(t,v,hat)=>{const h=v/mx*Hh;if(h<=0)return;y-=h;g+=`<rect class="bb" style="transition-delay:${dl}s" x="${x}" y="${y}" width="${iw}" height="${Math.max(0,h-1.5)}" rx="3" fill="${colOf(t)}" fill-opacity="${hat?.28:1}"${hat?` stroke="${colOf(t)}" stroke-opacity=".7" stroke-width="1.2"`:''}/>`;if(hat)g+=`<rect class="bb" style="transition-delay:${dl}s" x="${x}" y="${y}" width="${iw}" height="${Math.max(0,h-1.5)}" rx="3" fill="url(#ht)"/>`};
+  const seg=(t,v,hat)=>{const h=v/mx*Hh;if(h<=0)return;y-=h;g+=`<rect class="bb" style="transition-delay:${dl}s" x="${x}" y="${y}" width="${iw}" height="${h}" fill="${colOf(t)}" fill-opacity="${hat?.34:.92}" shape-rendering="crispEdges"/>`;if(hat)g+=`<rect class="bb" style="transition-delay:${dl}s" x="${x}" y="${y}" width="${iw}" height="${h}" fill="url(#ht)" shape-rendering="crispEdges"/>`};
   Object.entries(b.A).sort((p,q)=>q[1]-p[1]).forEach(([t,v])=>seg(t,v,false));
   Object.entries(b.F).sort((p,q)=>q[1]-p[1]).forEach(([t,v])=>seg(t,v,true));
-  const tot=b.a+b.f;if(tot>0)g+=`<text class="pv" x="${x+iw/2}" y="${y-8}" text-anchor="middle" font-size="16" font-weight="600" style="fill:${b.a>0?'#e8e8ea':'#9aa0a8'}">${Math.round(tot)}</text>`;
+  const tot=b.a+b.f;if(tot>0)g+=`<text class="pv" x="${x+iw/2}" y="${y-8}" text-anchor="middle" font-size="15" font-weight="500" style="fill:${b.a>0?'#b9bcc2':'#7d8088'}">${Math.round(tot)}</text>`;
   g+=`<text x="${x+iw/2}" y="${yb+26}" text-anchor="middle" font-size="17" style="${b.cur?'fill:#e8e8ea;font-weight:700':''}">${MON[b.m]}${b.m==0?' ’'+String(b.y).slice(2):''}</text>`});
  const nowX=pad+11*bw+bw/2,ts=Object.keys(COL).slice(0,7);
- return`<div class="chh"><span>Letzte 12 Monate <b class="pv">${eur(R.dttm)}</b></span><span>Prognose 12 Monate <b class="pv">ca. ${eur(R.f12)}</b></span><span class="sp" style="flex:1"></span><span class="lg">${ts.map(t=>`<i style="background:${COL[t]}"></i>${esc(short(nameOf(t)).slice(0,14))}`).join('')}<i class="hz"></i>Prognose</span></div>
+ return`<div class="chh"><div class="lg">${ts.map(t=>`<span><i style="background:${COL[t]}"></i>${esc((n=>n.length>18?n.slice(0,17).trim()+'…':n)(short(nameOf(t)).replace(/…$/,'')))}</span>`).join('')}<span class="lgp"><i class="hz"></i>Prognose</span></div></div>
  <svg id="chart" viewBox="0 0 ${W} ${top+Hh+36}" preserveAspectRatio="none">
- <defs><pattern id="ht" width="9" height="9" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><line x1="0" y1="0" x2="0" y2="9" stroke="rgba(8,8,10,.55)" stroke-width="3.5"/></pattern></defs>
+ <defs><pattern id="ht" width="9" height="9" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><line x1="0" y1="0" x2="0" y2="9" stroke="rgba(8,8,10,.45)" stroke-width="3"/></pattern></defs>
  <line x1="${pad}" x2="${W}" y1="${top+Hh}" y2="${top+Hh}" stroke="#22242a"/>
- <line x1="${nowX+bw/2}" x2="${nowX+bw/2}" y1="${top-10}" y2="${top+Hh}" stroke="#46f59a" stroke-opacity=".35" stroke-dasharray="4 6"/>
+ <line x1="${nowX+bw/2}" x2="${nowX+bw/2}" y1="${top-10}" y2="${top+Hh}" stroke="#8d9098" stroke-opacity=".35" stroke-dasharray="4 6"/>
  ${g}</svg>`}
 
-const RENDER={pf:vPF,dv:vDV,nx:vNX,ch:vCH};
+const RENDER={pf:vPF,mv:vMV,dv:vDV,nx:vNX,ch:vCH};
 
 // ---------- Ablauf ----------
 let R=null,idx=0,list=[],paused=false,t0=0,raf=0;
