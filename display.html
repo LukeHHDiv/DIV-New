@@ -136,7 +136,7 @@ if(location.hash.length>1){const h=new URLSearchParams(location.hash.slice(1));
  if(h.get('w'))C.w=h.get('w');if(h.get('c'))C.c=h.get('c');if(h.get('p'))C.p=h.get('p');
  if(h.get('iv'))C.iv=Math.max(4,+h.get('iv')||12);
  LS.set('dd_cfg',C);history.replaceState(null,'',location.pathname+location.search)}
-C.w=String(C.w||'').replace(/\/+$/,'');
+const normW=u=>{u=String(u||'').trim().replace(/\/+$/,'').replace(/\/(sync|quote)(\?.*)?$/,'');if(u&&!/^https?:\/\//i.test(u))u='https://'+u;return u};C.w=normW(C.w);
 
 // ---------- Formatierung ----------
 const eur=(v,d=2)=>(v||0).toLocaleString('de-DE',{style:'currency',currency:'EUR',minimumFractionDigits:d,maximumFractionDigits:d});
@@ -163,7 +163,7 @@ function localData(){ // Daten aus der Tracker-App im selben Browser
 
 async function pull(){
  if(!C.w||(C.c||'').length<8){const l=localData();if(l){D=l;LS.set('dd_cache',D)}syncErr=C.w?'':'';return}
- try{const r=await(await fetch(C.w+'/sync?code='+encodeURIComponent(C.c),{cache:'no-store'})).json();if(!r.ok)throw Error(r.error||'Sync-Fehler');
+ try{const rs=await fetch(C.w+'/sync?code='+encodeURIComponent(C.c),{cache:'no-store'}),tx0=await rs.text();let r;try{r=JSON.parse(tx0)}catch(e){throw Error('Der Worker unter „'+C.w+'“ antwortet nicht wie erwartet (HTTP '+rs.status+'). Bitte die Worker-Adresse prüfen – sie steht in der Tracker-App unter Daten → Worker.')}if(!r.ok)throw Error(r.error||'Sync-Fehler');
   const doc=r.data?JSON.parse(r.data):{},X=doc.x||{},M=doc.m||{};const names=[...new Set([...Object.keys(X),...Object.keys(M)])].filter(n=>X[n]&&Object.keys(X[n].tx||{}).length);
   if(!names.length)throw Error('Im Sync liegen noch keine Buchungen. Bitte in der App einmal synchronisieren.');
   const p=names.includes(C.p)?C.p:names[0],x=X[p],del=x.del||{};
@@ -292,7 +292,7 @@ function openCfg(){$('#cw').value=C.w;$('#cc').value=C.c;$('#ci').value=C.iv;$('
  $('#cp').innerHTML=((D&&D.names)||[C.p||'']).map(n=>`<option ${n==(D&&D.p)?'selected':''}>${esc(n)}</option>`).join('');
  document.querySelectorAll('#cfg input[type=checkbox][value]').forEach(b=>b.checked=(C.views||[]).includes(b.value));$('#cst').textContent='';$('#cfg').showModal()}
 $('#cx').onclick=()=>$('#cfg').close();
-$('#csv').onclick=async()=>{const nw=$('#cw').value.trim().replace(/\/+$/,''),nc=$('#cc').value.trim(),np=$('#cp').value;const ch=nw!=C.w||nc!=C.c||np!=C.p;
+$('#csv').onclick=async()=>{const nw=normW($('#cw').value),nc=$('#cc').value.trim(),np=$('#cp').value;const ch=nw!=C.w||nc!=C.c||np!=C.p;
  C.w=nw;C.c=nc;C.p=np;C.iv=Math.max(4,+$('#ci').value||12);C.priv=$('#cpv').checked;C.views=[...document.querySelectorAll('#cfg input[type=checkbox][value]:checked')].map(b=>b.value);
  LS.set('dd_cfg',C);build();if(ch){$('#cst').textContent='Lade Daten …';D=null;await refresh(true);$('#cst').textContent=D?'Gespeichert.':'Fehler: '+syncErr;if(D)setTimeout(()=>$('#cfg').close(),600)}else{$('#cfg').close();if(R)show(idx)}};
 
