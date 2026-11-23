@@ -12,20 +12,20 @@ html,body{height:100%;background:var(--bg);color:var(--tx);font-family:-apple-sy
 body.mv{cursor:default}
 .num{font-variant-numeric:tabular-nums;letter-spacing:-.02em}
 #st{position:fixed;inset:0;padding:3.2vh 2.2vw 6vh}
-.hd{position:absolute;top:3vh;left:2.2vw;right:2.2vw;display:flex;align-items:center;gap:1.2vw;font-size:3.6vh;color:var(--mu);font-weight:500;z-index:3}
+.hd{display:none!important;position:absolute;top:3vh;left:2.2vw;right:2.2vw;display:flex;align-items:center;gap:1.2vw;font-size:3.6vh;color:var(--mu);font-weight:500;z-index:3}
 .hd b{color:var(--tx);font-weight:600}
 .hd .sp{flex:1}
 #clk{font-variant-numeric:tabular-nums;color:var(--tx)}
 #pfn{opacity:.7}
 :root{--sp:.9s}
-.sl{position:absolute;inset:11vh 2.2vw 7vh;opacity:0;transform:translateY(4vh) scale(.985);filter:blur(6px);transition:opacity var(--sp) cubic-bezier(.2,.7,.2,1),transform var(--sp) cubic-bezier(.2,.7,.2,1),filter var(--sp);pointer-events:none;display:flex;flex-direction:column;justify-content:center}
+.sl{position:absolute;inset:6vh 2.2vw 7vh;opacity:0;transform:translateY(4vh) scale(.985);filter:blur(6px);transition:opacity var(--sp) cubic-bezier(.2,.7,.2,1),transform var(--sp) cubic-bezier(.2,.7,.2,1),filter var(--sp);pointer-events:none;display:flex;flex-direction:column;justify-content:center}
 .sl.on{opacity:1;transform:none;filter:none;pointer-events:auto}
 .sl.out{opacity:0;transform:translateY(-4vh) scale(.985);filter:blur(6px)}
 body.tr-slide .sl{transform:translateX(8vw);filter:none}body.tr-slide .sl.on{transform:none}body.tr-slide .sl.out{transform:translateX(-8vw)}
 body.tr-fade .sl,body.tr-fade .sl.out{transform:none;filter:none}
 body.tr-zoom .sl{transform:scale(.9);filter:blur(4px)}body.tr-zoom .sl.on{transform:none;filter:none}body.tr-zoom .sl.out{transform:scale(1.08)}
 .ft{position:absolute;left:2.2vw;right:2.2vw;bottom:2.6vh;display:grid;grid-template-columns:1fr auto 1fr;align-items:center;gap:1vw;font-size:2.6vh;color:var(--mu);z-index:3}
-.ft #sts{justify-self:end}
+.ft #sts{display:none}
 .bar{display:none;height:.5vh;background:var(--ln);border-radius:1vh;overflow:hidden}
 .bar i{display:block;height:100%;width:0;background:linear-gradient(90deg,var(--neon2),var(--neon));border-radius:1vh}
 .dots{display:flex;gap:.6vw}
@@ -141,7 +141,7 @@ body.priv .pv{filter:blur(2.4vh)}
 </dialog>
 <script>
 'use strict';
-const VER='2026-11-23.13'; // bei jeder Änderung hochzählen – die Anzeige lädt sich dann selbst neu
+const VER='2026-11-23.14'; // bei jeder Änderung hochzählen – die Anzeige lädt sich dann selbst neu
 const $=s=>document.querySelector(s);
 const LS={get(k,d){try{const v=localStorage.getItem(k);return v==null?d:JSON.parse(v)}catch(e){return d}},raw(k){try{return localStorage.getItem(k)}catch(e){return null}},set(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}}};
 const VIEWS={pf:'Portfolio',mv:'Gewinner & Verlierer heute',dv:'Dividenden',nx:'Nächste Dividenden',ch:'Dividenden pro Monat'};
