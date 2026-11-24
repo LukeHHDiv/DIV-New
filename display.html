@@ -141,7 +141,7 @@ body.priv .pv{filter:blur(2.4vh)}
 </dialog>
 <script>
 'use strict';
-const VER='2026-11-23.14'; // bei jeder Änderung hochzählen – die Anzeige lädt sich dann selbst neu
+const VER='2026-11-24.1'; // bei jeder Änderung hochzählen – die Anzeige lädt sich dann selbst neu
 const $=s=>document.querySelector(s);
 const LS={get(k,d){try{const v=localStorage.getItem(k);return v==null?d:JSON.parse(v)}catch(e){return d}},raw(k){try{return localStorage.getItem(k)}catch(e){return null}},set(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}}};
 const VIEWS={pf:'Portfolio',mv:'Gewinner & Verlierer heute',dv:'Dividenden',nx:'Nächste Dividenden',ch:'Dividenden pro Monat'};
@@ -243,6 +243,12 @@ function fcMonth(h,k){const m=D.meta[h.t]||{},past=D.tx.filter(t=>t.type=='div'&
  const avg=recent.reduce((s,t)=>{const q=qtyAt(h.t,t.date);return s+(q>0?t.amount*h.q/q:t.amount)},0)/recent.length;
  return{a:avg,day:+lt.date.slice(8,10)}}
 const dayIn=(k,d)=>{const n=new Date(+k.slice(0,4),+k.slice(5),0).getDate();return k+'-'+String(Math.min(n,Math.max(1,d||15))).padStart(2,'0')};
+// ---------- Bestätigte Termine (aus Dividenden-Ankündigungen, hier pflegen) ----------
+// isin und/oder name (Teil des Namens) · ex = Ex-Tag · pay = Zahltag
+const ANN=[
+ {isin:'IE00082MOBL9',name:'European SuperDividend',ex:'2026-11-19',pay:'2026-11-27'}
+];
+const annFor=(h,k)=>ANN.find(a=>ym(a.pay)==k&&((a.isin&&h.isin==a.isin)||(a.name&&String(nameOf(h.t)+' '+(h.name||'')).toLowerCase().includes(a.name.toLowerCase()))));
 // Farben je Titel (stabil)
 const PAL=['#5fae8a','#5f8fbf','#8f82bd','#c2a165','#b97890','#5ea5a0','#a9a76c','#bb8668','#7685b5','#8aa877'];
 let COL={};const colOf=t=>COL[t]||'#6b7079';
@@ -257,7 +263,7 @@ function calc(){
  // Prognose (wie in der App): pro Titel und Monat
  FCC={};LGC={};const cur=addM(new Date(),0),fc=[],paidNow=new Set(divs.filter(x=>ym(x.d)==m0).map(x=>x.t));
  act.forEach(h=>{for(let i=0;i<=12;i++){const k=addM(new Date(),i);if(i==0&&paidNow.has(h.t))continue;const r=fcMonth(h,k);if(!(r.a>0))continue;
-  const an=annOf(h.t,k),d=an?an.d:dayIn(k,r.day);if(d<=today)continue;fc.push({t:h.t,k,d,a:r.a,ok:!!an,ex:an?an.ex:''})}});
+  const ma=annFor(h,k),an=ma?{d:ma.pay,ex:ma.ex}:annOf(h.t,k),d=an?an.d:dayIn(k,r.day);if(d<=today)continue;fc.push({t:h.t,k,d,a:r.a,ok:!!an,ex:an?an.ex:''})}});
  fc.sort((a,b)=>a.d<b.d?-1:1);
  const fyRest=fc.filter(f=>f.k.slice(0,4)==y0).reduce((s,f)=>s+f.a,0);
  const f12=fc.filter(f=>f.k>cur).reduce((s,f)=>s+f.a,0);
@@ -302,7 +308,7 @@ function vNX(R){const L=R.fc.slice(0,6);
  const lim=iso(new Date(Date.now()+30*864e5)),s30=R.fc.filter(f=>f.d>R.today&&f.d<=lim).reduce((s,f)=>s+f.a,0);
  return`<div class="nx">${L.map((f,i)=>{const d=new Date(f.d+'T12:00:00'),dd=Math.round((d-new Date(R.today+'T12:00:00'))/864e5);
   return`<div class="cd ${f.ok?'':'est'}" style="transition-delay:${i*.09}s;border-top:.6vh solid ${colOf(f.t)}"><div class="dt"><span class="d num">${d.getDate()}</span><span class="m">${MON[d.getMonth()]}</span></div>
-  <div class="n">${esc(short(nameOf(f.t)))}</div><div class="a num pv">${f.ok?'':'ca. '}${eur(f.a)}</div>
+  <div class="n">${esc(short(nameOf(f.t)))}</div><div class="a num pv">ca. ${eur(f.a)}</div>
   <div class="i">${dd<=0?'heute':dd==1?'morgen':'in '+dd+' Tagen'}${f.ok?`<span class="tag ok">Ex ${f.ex.slice(8,10)}.${f.ex.slice(5,7)}.</span>`:'<span class="tag">geschätzt</span>'}</div></div>`}).join('')}</div>
  <div class="sum">Nächste 30 Tage: <b class="pv">ca. ${eur(s30)}</b></div>`}
 
