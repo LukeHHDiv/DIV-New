@@ -126,6 +126,7 @@ body.priv .pv{filter:blur(2.4vh)}
  <h2>Display-Einstellungen</h2>
  <div class="row"><label>Worker-Adresse <input type="text" id="cw" placeholder="https://…workers.dev"></label></div>
  <div class="row"><label>Sync-Code <input type="password" id="cc" placeholder="wie in der App unter Sync"></label></div>
+ <div class="row"><label>Trading-212-Passwort <input type="password" id="ct2" placeholder="wie in der App unter Daten → Trading 212"></label><button type="button" class="sec" id="ct2t" style="padding:5px 10px">Testen</button><span id="ct2s" class="hint"></span></div>
  <div class="row"><label>Portfolio <select id="cp"></select></label><span class="hint">Liste erscheint nach dem ersten erfolgreichen Sync.</span></div>
  <div class="row"><b>Slides &amp; Anzeigezeit</b> <span class="hint">Haken = anzeigen · Zahl = Sekunden, wie lange der Slide stehen bleibt</span></div>
  <div id="cvw" style="display:grid;grid-template-columns:repeat(5,auto);gap:8px 22px;justify-content:start;margin:6px 0 10px">
@@ -136,22 +137,23 @@ body.priv .pv{filter:blur(2.4vh)}
   <label>Übergang <select id="ctr"><option value="glide">Gleiten</option><option value="slide">Schieben</option><option value="fade">Überblenden</option><option value="zoom">Zoom</option></select></label>
   <label>Tempo <select id="csp"><option value="s">langsam</option><option value="n">normal</option><option value="f">schnell</option></select></label>
   <label><input type="checkbox" id="cpv"> Beträge verbergen (Inkognito)</label></div>
- <p class="hint">Version <span id="cver"></span> · Bedienung: Klick rechts = weiter, links = zurück, Leertaste = Pause, S = Einstellungen. Daten und Kurse werden alle 2 Stunden neu geladen (Taste R = sofort).</p>
+ <p class="hint">Version <span id="cver"></span> · Bedienung: Klick rechts = weiter, links = zurück, Leertaste = Pause, S = Einstellungen. Daten und Kurse (Trading 212, sonst Kursdienst) werden alle 2 Stunden neu geladen (Taste R = sofort).</p>
  <div class="row"><button id="csv">Speichern</button><button class="sec" id="cx">Abbrechen</button><span id="cst" class="hint"></span></div>
 </dialog>
 <script>
 'use strict';
-const VER='2026-11-24.1'; // bei jeder Änderung hochzählen – die Anzeige lädt sich dann selbst neu
+const VER='2026-11-24.2'; // bei jeder Änderung hochzählen – die Anzeige lädt sich dann selbst neu
 const $=s=>document.querySelector(s);
 const LS={get(k,d){try{const v=localStorage.getItem(k);return v==null?d:JSON.parse(v)}catch(e){return d}},raw(k){try{return localStorage.getItem(k)}catch(e){return null}},set(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}}};
 const VIEWS={pf:'Portfolio',mv:'Gewinner & Verlierer heute',dv:'Dividenden',nx:'Nächste Dividenden',ch:'Dividenden pro Monat'};
 
 // ---------- Konfiguration ----------
-let C=Object.assign({w:'',c:'',p:'',views:['pf','mv','dv','nx','ch'],iv:12,dur:{},tr:'glide',sp:'n',priv:false},LS.get('dd_cfg',{}));if(!C.dur)C.dur={};if(!C.m5){if(!C.views.includes('mv')){const i=C.views.indexOf('pf');C.views.splice(i<0?0:i+1,0,'mv')}C.m5=1}
+let C=Object.assign({w:'',c:'',p:'',views:['pf','mv','dv','nx','ch'],iv:12,dur:{},tr:'glide',sp:'n',priv:false,t2:''},LS.get('dd_cfg',{}));if(!C.dur)C.dur={};if(!C.m5){if(!C.views.includes('mv')){const i=C.views.indexOf('pf');C.views.splice(i<0?0:i+1,0,'mv')}C.m5=1}
 if(!C.w)C.w=LS.raw('divworker')||'';
 if(!C.c)C.c=(LS.raw('sycode')||'').trim();
+if(!C.t2)C.t2=(LS.raw('t2pw')||'').trim();
 if(location.hash.length>1){const h=new URLSearchParams(location.hash.slice(1));
- if(h.get('w'))C.w=h.get('w');if(h.get('c'))C.c=h.get('c');if(h.get('p'))C.p=h.get('p');
+ if(h.get('w'))C.w=h.get('w');if(h.get('c'))C.c=h.get('c');if(h.get('t2'))C.t2=h.get('t2');if(h.get('p'))C.p=h.get('p');
  if(h.get('iv'))C.iv=Math.max(4,+h.get('iv')||12);
  LS.set('dd_cfg',C);history.replaceState(null,'',location.pathname+location.search)}
 const normW=u=>{u=String(u||'').trim().replace(/\/+$/,'').replace(/\/(sync|quote)(\?.*)?$/,'');if(u&&!/^https?:\/\//i.test(u))u='https://'+u;return u};C.w=normW(C.w);
@@ -204,7 +206,17 @@ async function pull(){
 async function quotes(){
  if(DEMO)return;if(!C.w||!D)return;const H=holdings().filter(h=>h.q>1e-4&&h.isin);const kk=LS.get('dtk',{}),hd={};if(kk.td)hd['x-td-key']=kk.td;if(kk.fmp)hd['x-fmp-key']=kk.fmp;
  await Promise.all(H.map(async h=>{const o=Q[h.t]||{};try{const r=await fetch(`${C.w}/quote?isin=${encodeURIComponent(h.isin)}${o.sym?'&sym='+encodeURIComponent(o.sym):''}`,Object.keys(hd).length?{headers:hd}:undefined),j=await r.json();
-  if(j.ok&&j.eur>0)Q[h.t]={p:j.eur,pc:j.prevEur,sym:j.sym,ts:j.time||Date.now()}}catch(e){}}));LS.set('dd_q',Q)}
+  if(j.ok&&j.eur>0)Q[h.t]={p:j.eur,pc:j.prevEur,sym:j.sym,ts:j.time||Date.now()}}catch(e){}}));
+ await t212(H);LS.set('dd_q',Q)}
+// Trading 212 (über den Worker, wie in der Tracker-App): aktueller Kurs je ISIN; Vortag bleibt aus dem Kursabruf
+let T2={ok:null,msg:''};
+async function t212(H){if(!C.t2||!C.w){T2={ok:null,msg:''};return}
+ try{const j=await(await fetch(`${C.w}/t212?k=${encodeURIComponent(C.t2)}`,{cache:'no-store'})).json();
+  if(!j.ok){T2={ok:false,msg:j.error||'Fehler'};return}
+  const m={};(j.pos||[]).forEach(p=>{if(p.isin&&p.eur>0)m[p.isin]=p});let n=0;
+  (H||holdings().filter(h=>h.q>1e-4&&h.isin)).forEach(h=>{const p=m[h.isin];if(!p)return;Q[h.t]={...(Q[h.t]||{}),p:p.eur,src:'t212',ts:Date.now()};n++});
+  T2={ok:true,msg:`Verbunden · ${j.n} Positionen bei Trading 212, ${n} Kurse übernommen`}}
+ catch(e){T2={ok:false,msg:'Worker nicht erreichbar'}}}
 
 function holdings(){if(!D)return[];const h={};[...D.tx].sort((a,b)=>a.date<b.date?-1:1).forEach(t=>{if(!t.ticker||!['buy','sell','div'].includes(t.type))return;
  const x=h[t.ticker]||(h[t.ticker]={t:t.ticker,name:t.name,isin:'',q:0,cost:0,div:0});if(t.isin)x.isin=t.isin;if(t.name)x.name=t.name;
@@ -360,14 +372,16 @@ let mvT=0;document.addEventListener('mousemove',()=>{document.body.classList.add
 $('#st').addEventListener('click',e=>{if(!R)return openCfg();show(idx+(e.clientX<innerWidth/3?-1:1))});
 document.addEventListener('keydown',e=>{if($('#cfg').open)return;if(e.key=='ArrowRight')show(idx+1);else if(e.key=='ArrowLeft')show(idx-1);else if(e.key==' '){paused=!paused;document.body.classList.toggle('paused',paused);t0=performance.now()-(paused?0:0);e.preventDefault()}else if(e.key=='s'||e.key=='S'){e.preventDefault();openCfg()}else if(e.key=='r'||e.key=='R'){upd();refresh(true)}});
 $('#gear').addEventListener('click',e=>{e.stopPropagation();openCfg()});
-function openCfg(){$('#cw').value=C.w;$('#cc').value=C.c;$('#ci').value=C.iv;$('#cpv').checked=!!C.priv;
+function openCfg(){$('#cw').value=C.w;$('#cc').value=C.c;$('#ct2').value=C.t2||'';$('#ct2s').textContent=T2.msg?(T2.ok?'✓ ':'⚠ ')+T2.msg:(C.t2?'':'Leer = Trading 212 aus');$('#ci').value=C.iv;$('#cpv').checked=!!C.priv;
  $('#cp').innerHTML=((D&&D.names)||[C.p||'']).map(n=>`<option ${n==(D&&D.p)?'selected':''}>${esc(n)}</option>`).join('');
  document.querySelectorAll('#cfg input[type=checkbox][value]').forEach(b=>b.checked=(C.views||[]).includes(b.value));document.querySelectorAll('#cfg input[data-d]').forEach(b=>b.value=C.dur[b.dataset.d]||C.iv);$('#ctr').value=C.tr||'glide';$('#csp').value=C.sp||'n';$('#cst').textContent='';$('#cver').textContent=VER;$('#cfg').showModal()}
 $('#cx').onclick=()=>$('#cfg').close();
+$('#ct2t').onclick=async e=>{e.preventDefault();const w=normW($('#cw').value),k=$('#ct2').value.trim(),o=$('#ct2s');if(!k){o.textContent='Leer = Trading 212 aus';return}if(!w){o.textContent='Bitte zuerst die Worker-Adresse eintragen.';return}o.textContent='Prüfe …';
+ try{const j=await(await fetch(`${w}/t212?k=${encodeURIComponent(k)}`,{cache:'no-store'})).json();o.textContent=j.ok?`✓ Verbunden · ${j.n} Positionen, davon ${j.withIsin||0} mit ISIN`:'⚠ '+(j.error||'unbekannter Fehler')}catch(x){o.textContent='⚠ Worker nicht erreichbar'}};
 $('#call').onclick=e=>{e.preventDefault();const v=Math.max(3,+$('#ci').value||12);document.querySelectorAll('#cfg input[data-d]').forEach(b=>b.value=v)};
-$('#csv').onclick=async()=>{const nw=normW($('#cw').value),nc=$('#cc').value.trim(),np=$('#cp').value;const ch=nw!=C.w||nc!=C.c||np!=C.p;
+$('#csv').onclick=async()=>{const nw=normW($('#cw').value),nc=$('#cc').value.trim(),np=$('#cp').value,nt=$('#ct2').value.trim();const ch=nw!=C.w||nc!=C.c||np!=C.p,cht=nt!=(C.t2||'');C.t2=nt;
  C.w=nw;C.c=nc;C.p=np;C.iv=Math.max(4,+$('#ci').value||12);C.priv=$('#cpv').checked;C.tr=$('#ctr').value;C.sp=$('#csp').value;C.dur={};document.querySelectorAll('#cfg input[data-d]').forEach(b=>{const v=+b.value;if(v>=3)C.dur[b.dataset.d]=v});C.views=[...document.querySelectorAll('#cfg input[type=checkbox][value]:checked')].map(b=>b.value);
- LS.set('dd_cfg',C);build();if(ch){$('#cst').textContent='Lade Daten …';D=null;await refresh(true);$('#cst').textContent=D?'Gespeichert.':'Fehler: '+syncErr;if(D)setTimeout(()=>$('#cfg').close(),600)}else{$('#cfg').close();if(R)show(idx)}};
+ LS.set('dd_cfg',C);build();if(ch){$('#cst').textContent='Lade Daten …';D=null;await refresh(true);$('#cst').textContent=D?'Gespeichert.':'Fehler: '+syncErr;if(D)setTimeout(()=>$('#cfg').close(),600)}else{$('#cfg').close();if(cht&&D){await quotes();R=calc()}if(R)show(idx)}};
 
 // ---------- Start ----------
 build();if(D){R=calc();show(0);status()}refresh(!D);requestAnimationFrame(tick);
