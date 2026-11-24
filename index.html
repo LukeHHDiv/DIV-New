@@ -398,12 +398,15 @@ function saveSy(){const c=($('#syc').value||'').trim();try{localStorage.setItem(
 function genSy(){const a='abcdefghjkmnpqrstuvwxyz23456789';let c='';const r=new Uint32Array(14);crypto.getRandomValues(r);r.forEach((x,i)=>{c+=a[x%a.length];if(i==4||i==9)c+='-'});$('#syc').value=c}
 const qHdr=()=>{const K=gk(),hd={};if(K.td)hd['x-td-key']=K.td;if(K.fmp)hd['x-fmp-key']=K.fmp;let pf='';try{pf=localStorage.getItem('qpref')||''}catch(e){}return{hd,pf}};
 function saveW(){const v=$('#wu').value.trim().replace(/[\/]+$/,'');try{localStorage.setItem('divworker',v);$('#wu').value=v;$('#wst').textContent=v?'Adresse gespeichert.':'Adresse gelöscht.'}catch(e){$('#wst').textContent='Speichern nicht möglich (privater Modus?).'}}
-async function syncEv(){const u=gw(),st=$('#wst');if(!u){st.textContent='Bitte zuerst die Worker-Adresse speichern.';return}
+let EVR=0;
+async function autoEv(){const u=gw();if(!u||EVR||navigator.onLine===false)return;const H=holdings().filter(h=>h.q>0.0001);if(!H.length)return;const old=Math.min(...H.map(h=>((S.meta[h.t]||{}).ev||{}).ts||0));if(Date.now()-old<12*36e5)return;await syncEv(true);if(['dash','dvd','dvm','dvy','dvc','cal','hold','det'].includes(tab)&&!$('#dg').open)render()}
+async function syncEv(silent){if(EVR)return;EVR=1;try{await syncEv0(silent)}finally{EVR=0}}
+async function syncEv0(silent){const u=gw(),st=$('#wst')||{};if(!u){st.textContent='Bitte zuerst die Worker-Adresse speichern.';return}
  const H=withRaw(holdings).filter(h=>h.q>0.0001);WR={};let ok=0,i=0;
  for(const h of H){i++;st.textContent=`Rufe ab … ${i}/${H.length}`;const isin=(rawTx().find(x=>x.ticker==h.t&&x.isin)||{}).isin;if(!isin){WR[h.t]='keine ISIN';continue}
   const m=S.meta[h.t]=S.meta[h.t]||{};try{const r=await fetch(`${u}/div?isin=${encodeURIComponent(isin)}${m.ysym?'&sym='+encodeURIComponent(m.ysym):''}`),j=await r.json();
    if(j.ok){m.ev={ex:j.divs.map(d=>[d.ex,d.amt]),nx:j.next||null,fx:j.fx||null,cur:j.cur||'',ts:Date.now()};m.ysym=j.sym;ok++;WR[h.t]=`✓ ${j.sym} · ${j.divs.length} Termine${j.next?' · nächster Ex-Tag '+j.next.ex:''}`}else WR[h.t]='✗ '+(j.error||'nichts gefunden')}catch(e){WR[h.t]='✗ Worker nicht erreichbar'}}
- save();st.textContent=`Fertig: ${ok} von ${H.length} Titeln aktualisiert.`;drawW();if(ok<H.length)warn(ok==0?'Termine konnten nicht abgerufen werden.':`Für ${H.length-ok} von ${H.length} Titeln gab es keine Termine.`,true)}
+ save();st.textContent=`Fertig: ${ok} von ${H.length} Titeln aktualisiert.`;drawW();if(!silent&&ok<H.length)warn(ok==0?'Termine konnten nicht abgerufen werden.':`Für ${H.length-ok} von ${H.length} Titeln gab es keine Termine.`,true)}
 function drawW(){const t=$('#wt');if(t)t.innerHTML=Object.entries(WR).map(([k,v])=>`<tr><td><b class="tn" data-t="${esc(k)}">${esc(nameOf(k)||k)}</b></td><td class="${v[0]=='✓'?'gr':'mu'}" style="text-align:right">${esc(v)}</td></tr>`).join('')}
 const esc=x=>String(x??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const tagsOf=t=>(S.meta[t]||{}).tags||[],allTags=()=>[...new Set(Object.values(S.meta).flatMap(m=>m.tags||[]))].sort((a,b)=>a.localeCompare(b,'de'));
@@ -1304,7 +1307,7 @@ $('#exp').onclick=async()=>{const blob=new Blob([JSON.stringify(Object.assign({}
 $('#fj').onchange=async e=>{const f=e.target.files[0];e.target.value='';if(!f)return;try{const j=JSON.parse(await f.text());if(!Array.isArray(j.tx))throw Error('Keine gültige Sicherung');
  unF();const have=new Set(S.tx.map(key));let n=0;j.tx.forEach(t=>{if(!have.has(key(t))){S.tx.push(t);have.add(key(t));n++}});Object.entries(j.meta||{}).forEach(([k,v])=>{if(!S.meta[k])S.meta[k]=v});let nv=0;if(Array.isArray(j.views)){const hv=new Set(VW.map(v=>v.n));j.views.forEach(v=>{if(v&&v.n&&!hv.has(v.n)){VW.push(v);hv.add(v.n);nv++}});if(nv)svF()}save();alert(n+' Buchungen und '+nv+' Ansichten übernommen.');render()}catch(x){alert('Fehler: '+x.message)}};
 $('#clr').onclick=()=>{if(confirm('Alle Daten dieses Portfolios löschen?')){S={tx:[],meta:{}};save();render()}};
-render();fetchQ();setTimeout(()=>syncV(),1200);document.addEventListener('visibilitychange',()=>{if(!document.hidden)syncV();if(!document.hidden&&Date.now()-QS.t>300000)fetchQ()});
+render();fetchQ();setTimeout(()=>syncV(),1200);setTimeout(()=>autoEv(),3500);document.addEventListener('visibilitychange',()=>{if(!document.hidden)syncV();if(!document.hidden)autoEv();if(!document.hidden&&Date.now()-QS.t>300000)fetchQ()});
 try{navigator.storage&&navigator.storage.persist&&navigator.storage.persist()}catch(e){}
 if('serviceWorker' in navigator)addEventListener('load',()=>navigator.serviceWorker.register('sw.js').catch(()=>{}));
 </script></body></html>
