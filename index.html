@@ -721,7 +721,7 @@ function dvDonut(by,lt){const el=$('#dvdc');if(!el)return;lt=!!lt;
 function dvd(){seedC();const now=new Date(),cur=addM(now,0),y=String(now.getFullYear()),divs=dvTx().filter(t=>t.ticker),fc=forecast(12),H=holdings().filter(h=>h.q>0.0001),cost=H.reduce((s,h)=>s+h.cost,0),
  total=divs.reduce((s,t)=>s+t.amount,0),ytd=divs.filter(t=>t.date.startsWith(y)).reduce((s,t)=>s+t.amount,0),f12=fc.reduce((s,t)=>s+t.a,0),first=S.tx.reduce((m,t)=>t.date<m?t.date:m,'9999-99-99'),
  mths=Math.max(1,(now.getFullYear()-+first.slice(0,4))*12+now.getMonth()-(+first.slice(5,7)-1)+1),by={};divs.forEach(t=>by[t.ticker]=(by[t.ticker]||0)+t.amount);
- const top=Object.entries(by).sort((a,b)=>b[1]-a[1]).slice(0,6),next=[...fc].sort((a,b)=>a.ym<b.ym?-1:a.ym>b.ym?1:b.a-a.a).slice(0,6),k2=[];for(let i=-Math.max(5,now.getMonth());i<=Math.max(6,11-now.getMonth());i++)k2.push(addM(now,i));
+ const actT=new Set(holdings().filter(h=>h.q>0.0001).map(h=>h.t)),top=Object.entries(by).filter(([t])=>actT.has(t)).sort((a,b)=>b[1]-a[1]).slice(0,6),next=[...fc].sort((a,b)=>a.ym<b.ym?-1:a.ym>b.ym?1:b.a-a.a).slice(0,6),k2=[];for(let i=-Math.max(5,now.getMonth());i<=Math.max(6,11-now.getMonth());i++)k2.push(addM(now,i));
  const lim=new Date(Date.now()-365*864e5).toISOString().slice(0,10),ttm=divs.filter(t=>t.date.slice(0,10)>=lim),ttmT=ttm.reduce((s,t)=>s+t.amount,0),hm={};H.forEach(h=>hm[h.t]=h);
  const ivB=t=>payFreq(t).key,
  qAt=(t,d)=>S.tx.filter(x=>x.ticker==t&&x.date<=d&&(x.type=='buy'||x.type=='sell')).reduce((s,x)=>s+(x.type=='buy'?x.qty:-x.qty),0),
@@ -741,7 +741,6 @@ function dvd(){seedC();const now=new Date(),cur=addM(now,0),y=String(now.getFull
  <div class="card" style="margin-top:12px"><h3>Letzte und kommende Monate</h3><div class="cv s"><canvas id="c1"></canvas></div></div>
  ${sec('up','Angekündigte Dividenden',moreG('up',up))}${sec('pa','Letzte Auszahlungen',moreG('pa',pa))}
  ${sec('ti','Dividendentitel',thead+(titles.map(trow).join('')||'<div class="mu">Keine aktiven Titel mit Dividenden</div>'))}
- ${sold.length?sec('so','Verkaufte Titel ('+sold.length+')',thead+sold.map(trow).join('')):''}
 <div class="card"><h3>Größte Zahler</h3>${top.map(([t,v])=>`<div class="cr"><div class="row" style="margin:0;align-items:flex-start;gap:10px"><span class="dnm"><span style="color:${tcol(t)}">■</span> <b class="tn" data-t="${esc(t)}">${esc(nameOf(t)||t)}</b></span><span class="dr"><b>${eur(v)}</b><br><span class="mu" style="font-size:12px">${PCT(total?v/total*100:0)}</span></span></div><div class="bar" style="margin-top:6px"><i style="width:${total?v/total*100:0}%;background:${tcol(t)}"></i></div></div>`).join('')||'<div class="mu">Noch keine Dividenden</div>'}</div>`;
 chart('c1',{type:'bar',data:{labels:k2.map(k=>MN[+k.slice(5)-1]),datasets:[{label:'Erhalten',data:k2.map(k=>k>cur?null:divs.filter(t=>ym(t.date)==k).reduce((s,t)=>s+t.amount,0)),backgroundColor:P[1],borderRadius:0},{label:'Prognose',data:k2.map(k=>k>cur?fc.filter(t=>t.ym==k).reduce((s,t)=>s+t.a,0):null),backgroundColor:HP,borderColor:HB,borderWidth:1,borderRadius:0}]},options:{plugins:{legend:{display:false},tooltip:{...TT,callbacks:{label:c=>c.dataset.label+': '+eur(c.raw)}}},scales:{x:{stacked:true,grid:{display:false}},y:{stacked:true,ticks:{callback:EY}}}}})}
 let MD=null;
