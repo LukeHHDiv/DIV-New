@@ -529,8 +529,8 @@ async function fetchD(){const u=gw();if(!u||navigator.onLine===false)return;cons
 function dailySeries(st){const T=[...S.tx].filter(t=>['buy','sell'].includes(t.type)&&t.ticker).sort((a,b)=>a.date<b.date?-1:1);if(!T.length)return null;
  const Hs=holdings().filter(h=>h.q>0.0001).map(h=>h.t),tks=[...new Set(T.map(t=>t.ticker))];
  const okD=t=>HD[t]&&HD[t].p&&HD[t].p.length>5&&qP(t)>0,HM=Hs.filter(t=>!okD(t));window.DMISS=HM;if(HM.length==Hs.length)return null;{const tot=Hs.reduce((s,t)=>s+(mvOf(holdings().find(h=>h.t==t)||{q:0,cost:0})||0),0),ms=HM.reduce((s,t)=>s+(mvOf(holdings().find(h=>h.t==t)||{q:0,cost:0})||0),0);if(tot>0&&ms/tot>0.5)return null}
- const first=T[0].date.slice(0,10),from=st<='0000-99'?first.slice(0,4)+'-01-01':(st>first?st:first),set=new Set(),today=fmtD(new Date());
- Hs.filter(okD).forEach(t=>HD[t].p.forEach(([d])=>{if(d>=from)set.add(d)}));set.add(today);if(st<='0000-99')set.add(from);const dates=[...set].sort();if(dates.length<3)return null;
+ const first=T[0].date.slice(0,10),one=opt.per=='0',from=one?'1900-01-01':(st<='0000-99'?first.slice(0,4)+'-01-01':st),set=new Set(),today=fmtD(new Date());
+ Hs.filter(okD).forEach(t=>HD[t].p.forEach(([d])=>{if(d>=from)set.add(d)}));if(!one){set.add(today);set.add(from)}let dates=[...set].sort();if(one)dates=dates.slice(-2);if(dates.length<2)return null;
  const P={};tks.forEach(t=>{const hd=HD[t]&&HD[t].p;P[t]={hd,i:0,q:0,c:0,last:hd?hd[hd.length-1][1]:0,cur:qP(t),held:Hs.includes(t)&&okD(t)}});
  let ti=0;const val=[],inv=[],fl=[];
  dates.forEach(d=>{let fw=0;while(ti<T.length&&T[ti].date.slice(0,10)<=d){const x=T[ti++],p=P[x.ticker];fw+=x.type=='buy'?x.amount:-x.amount;if(x.type=='buy'){p.q+=x.qty;p.c+=x.amount}else{const a=p.q?p.c/p.q:0;p.c-=a*x.qty;p.q-=x.qty}}
@@ -538,7 +538,7 @@ function dailySeries(st){const T=[...S.tx].filter(t=>['buy','sell'].includes(t.t
    if(p.held){while(p.i+1<p.hd.length&&p.hd[p.i+1][0]<=d)p.i++;v+=p.q*p.cur*p.hd[p.i][1]/p.last}else v+=Math.max(p.c,0)});
   val.push(v);inv.push(c);fl.push(fw)});
  return{dates,val,inv,fl}}
-function wDraw(id,full){let st=perStart(),D=dailySeries(st);if(D&&D.dates.length<8){D=dailySeries(fmtD(new Date(Date.now()-30*864e5)))}if(!D&&full&&window.WM&&window.WM.dates.length>1)D=window.WM;if(!D||!$('#'+id))return false;
+function wDraw(id,full){let st=perStart(),D=dailySeries(st);if(!D&&full&&window.WM&&window.WM.dates.length>1)D=window.WM;if(!D||!$('#'+id))return false;
  const {dates,val,inv}=D,fd=d=>d.slice(8,10)+'.'+d.slice(5,7)+'.'+d.slice(0,4),n=dates.length-1,pv=PRIV,
  hv=i=>{if(full)return;const a=$('#wl'),b=$('#wv'),c=$('#wi');if(!a)return;const j=(i==null||i<0)?n:i;a.textContent=j==n?'Wert am '+fd(dates[j]):'Wert am '+fd(dates[j]);b.textContent=eur(val[j]);c.textContent=eur(inv[j])},
  vcur={id:'vcur',afterDraw(c){if(c._hx==null)return;const a=c.chartArea,g=c.ctx;g.save();g.strokeStyle='rgba(255,255,255,.8)';g.lineWidth=1;g.setLineDash([4,4]);g.beginPath();g.moveTo(c._hx,a.top);g.lineTo(c._hx,a.bottom);g.stroke();g.restore()}},
@@ -549,7 +549,7 @@ function wDraw(id,full){let st=perStart(),D=dailySeries(st);if(D&&D.dates.length
    plugins:{legend:{display:false},tooltip:{enabled:!pv,...TT,displayColors:true,callbacks:{title:c=>c.length?fd(dates[c[0].dataIndex])+' (Tagesende)':'',label:c=>' '+c.dataset.label+': '+eur(c.raw),afterBody:c=>c.length?['Differenz: '+(val[c[0].dataIndex]-inv[c[0].dataIndex]>=0?'+':'')+eur(val[c[0].dataIndex]-inv[c[0].dataIndex])]:[]}}},
    onHover:(e,els,c)=>{if(e.type=='mouseout'||!els.length){if(c._hx!=null)rst();return}c._hx=els[0].element.x;hv(els[0].index);c.draw()},
    scales:{y:{beginAtZero:false,grace:'8%',position:'left',grid:{color:'rgba(255,255,255,.14)',borderDash:[5,5],drawTicks:false},border:{display:false},ticks:{display:!pv,maxTicksLimit:5,color:'rgba(200,204,212,.8)',font:{size:11},callback:v=>(+v).toLocaleString('de-DE',{maximumFractionDigits:0})+' €'}},
-    x:{grid:{display:false},border:{display:false},ticks:{autoSkip:false,maxRotation:0,callback:function(v,i){const d=dates[i];if(i==0||d.slice(0,7)!=dates[i-1].slice(0,7)){const ms=n>400?3:(n>200?2:1),mo=+d.slice(5,7)-1;if(i==0){let j=1;while(j<n&&dates[j].slice(0,7)==d.slice(0,7))j++;if(j<n*0.1)return ''}if(mo%ms==0||i==0)return MN[mo]+' '+d.slice(2,4)}return ''}}}}},plugins:[vcur,edge]});
+    x:{grid:{display:false},border:{display:false},ticks:{autoSkip:false,maxRotation:0,callback:function(v,i){const d=dates[i];if(n<=45){const stp=Math.max(1,Math.ceil((n+1)/(full?8:5)));return(i%stp==0||i==n&&i%stp>=stp/2)?d.slice(8,10)+'.'+d.slice(5,7)+'.':''}if(i==0||d.slice(0,7)!=dates[i-1].slice(0,7)){const ms=n>400?3:(n>200?2:1),mo=+d.slice(5,7)-1;if(i==0){let j=1;while(j<n&&dates[j].slice(0,7)==d.slice(0,7))j++;if(j<n*0.1)return ''}if(mo%ms==0||i==0)return MN[mo]+' '+d.slice(2,4)}return ''}}}}},plugins:[vcur,edge]});
  const cv=$('#'+id);if(!cv._w){cv._w=1;['pointerleave','touchend','touchcancel'].forEach(ev=>cv.addEventListener(ev,rst))}return true}
 function wFull(){let d=$('#fsd');if(!d){d=document.createElement('dialog');d.id='fsd';document.body.appendChild(d)}const pn=(PFL.find(p=>p.id==PFC)||{n:''}).n,pl=(PER.find(x=>x[0]==(opt.per||'max'))||[0,''])[1];
  d.innerHTML=`<div class="fsh"><div><b>${esc(pn)}</b><div class="mu">Wertentwicklung · ${pl}</div></div><button class="fsb" onclick="wClose()" aria-label="Schließen"><svg viewBox="0 0 24 24"><path d="M9 4v5H4M15 4v5h5M9 20v-5H4M15 20v-5h5"/></svg></button></div><div class="fsc"><canvas id="cf"></canvas></div><div class="fsl"><span><i style="background:${G}"></i>Portfolio Wert</span><span><i style="background:#9fb6d6"></i>Investiert</span></div>`;
