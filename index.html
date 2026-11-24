@@ -521,16 +521,17 @@ const mEnds=()=>{const n=new Date(),f=rawTx().reduce((m,t)=>t.date<m?t.date:m,'9
 let HD={};try{HD=JSON.parse(localStorage.getItem('divd')||'{}')}catch(e){}
 async function fetchD(){const u=gw();if(!u||navigator.onLine===false)return;const today=fmtD(new Date()),tk=[...new Set(rawTx().filter(x=>x.ticker&&['buy','sell'].includes(x.type)).map(x=>x.ticker))],
  want=tk.filter(t=>{const h=HD[t];return !(h&&h.d==today)&&rawTx().some(x=>x.ticker==t&&x.isin)});if(!want.length)return;
- await Promise.all(want.map(async t=>{const isin=(rawTx().find(x=>x.ticker==t&&x.isin)||{}).isin,q=QT[t]||{},m=S.meta[t]||{},sy=q.sym||m.ysym;
-  try{const j=await(await fetch(`${u}/series?isin=${encodeURIComponent(isin)}${sy?'&sym='+encodeURIComponent(sy):''}`)).json();if(j.ok&&j.pts&&j.pts.length>5)HD[t]={d:today,p:j.pts}}catch(e){}}));
+ const err=window.DERR=window.DERR||{},one=async t=>{const isin=(rawTx().find(x=>x.ticker==t&&x.isin)||{}).isin,q=QT[t]||{},m=S.meta[t]||{},sy=q.sym||m.ysym;
+  for(let a=0;a<2;a++){try{const j=await(await fetch(`${u}/series?isin=${encodeURIComponent(isin)}${sy?'&sym='+encodeURIComponent(sy):''}&v=2`)).json();if(j.ok&&j.pts&&j.pts.length>5){HD[t]={d:today,p:j.pts};delete err[t];return}err[t]=j.error||(j.hint?'Worker kennt /series nicht (alter Stand)':'keine Daten')}catch(e){err[t]='Worker nicht erreichbar'}await new Promise(r=>setTimeout(r,700))}};
+ for(let i=0;i<want.length;i+=3)await Promise.all(want.slice(i,i+3).map(one));
  try{localStorage.setItem('divd',JSON.stringify(HD))}catch(e){try{localStorage.removeItem('divd')}catch(e2){}}
  if(tab=='dash'&&opt.dtab=='w'&&!$('#dg').open&&!($('#fsd')&&$('#fsd').open))render()}
 function dailySeries(st){const T=[...S.tx].filter(t=>['buy','sell'].includes(t.type)&&t.ticker).sort((a,b)=>a.date<b.date?-1:1);if(!T.length)return null;
  const Hs=holdings().filter(h=>h.q>0.0001).map(h=>h.t),tks=[...new Set(T.map(t=>t.ticker))];
- for(const t of Hs){if(!(HD[t]&&HD[t].p&&HD[t].p.length>5)||!(qP(t)>0))return null}
+ const okD=t=>HD[t]&&HD[t].p&&HD[t].p.length>5&&qP(t)>0,HM=Hs.filter(t=>!okD(t));window.DMISS=HM;if(HM.length==Hs.length)return null;{const tot=Hs.reduce((s,t)=>s+(mvOf(holdings().find(h=>h.t==t)||{q:0,cost:0})||0),0),ms=HM.reduce((s,t)=>s+(mvOf(holdings().find(h=>h.t==t)||{q:0,cost:0})||0),0);if(tot>0&&ms/tot>0.5)return null}
  const first=T[0].date.slice(0,10),from=st>first?st:first,set=new Set(),today=fmtD(new Date());
- Hs.forEach(t=>HD[t].p.forEach(([d])=>{if(d>=from)set.add(d)}));set.add(today);const dates=[...set].sort();if(dates.length<3)return null;
- const P={};tks.forEach(t=>{const hd=HD[t]&&HD[t].p;P[t]={hd,i:0,q:0,c:0,last:hd?hd[hd.length-1][1]:0,cur:qP(t),held:Hs.includes(t)}});
+ Hs.filter(okD).forEach(t=>HD[t].p.forEach(([d])=>{if(d>=from)set.add(d)}));set.add(today);const dates=[...set].sort();if(dates.length<3)return null;
+ const P={};tks.forEach(t=>{const hd=HD[t]&&HD[t].p;P[t]={hd,i:0,q:0,c:0,last:hd?hd[hd.length-1][1]:0,cur:qP(t),held:Hs.includes(t)&&okD(t)}});
  let ti=0;const val=[],inv=[],fl=[];
  dates.forEach(d=>{let fw=0;while(ti<T.length&&T[ti].date.slice(0,10)<=d){const x=T[ti++],p=P[x.ticker];fw+=x.type=='buy'?x.amount:-x.amount;if(x.type=='buy'){p.q+=x.qty;p.c+=x.amount}else{const a=p.q?p.c/p.q:0;p.c-=a*x.qty;p.q-=x.qty}}
   let v=0,c=0;tks.forEach(t=>{const p=P[t];if(p.q<0.0001)return;c+=Math.max(p.c,0);
@@ -699,7 +700,7 @@ function dash(){seedC();const irT0=(()=>{try{return portIrr(holdings().filter(h=
     plugins:{legend:{display:false},tooltip:{enabled:false}},interaction:{mode:'index',intersect:false},
     onHover:(e,els,c)=>{if(e.type=='mouseout'||!els.length){if(c._hx!=null)rst();return}c._hx=els[0].element.x;c._hi=els[0].index;hv(els[0].index);c.draw()},
     scales:{y:{beginAtZero:false,grace:'8%',position:'right',grid:{color:'rgba(255,255,255,.14)',borderDash:[5,5],drawTicks:false},border:{display:false},ticks:{display:true,maxTicksLimit:5,color:'rgba(200,204,212,.8)',font:{size:11},callback:v=>(+v).toLocaleString('de-DE',{maximumFractionDigits:0})+' €'}},x:{grid:{display:false},border:{display:false},ticks:{maxTicksLimit:5,maxRotation:0}}}},plugins:[vcur,mm]});
-  const cv=$('#c0');['pointerleave','touchend','touchcancel'].forEach(ev=>cv.addEventListener(ev,rst));if(!wDraw('c0',false)){const l=$('#wnote');if(l)l.style.display='block'}}
+  const cv=$('#c0');['pointerleave','touchend','touchcancel'].forEach(ev=>cv.addEventListener(ev,rst));if(!wDraw('c0',false)){const l=$('#wnote');if(l){const ms=holdings().filter(h=>h.q>0.0001&&!(HD[h.t]&&HD[h.t].p&&HD[h.t].p.length>5)).map(h=>nameOf(h.t)||h.t);l.textContent=ms.length?'Monatsansicht, weil Tageskurse fehlen für: '+ms.slice(0,6).join(', ')+(ms.length>6?' …':'')+'. Der Worker muss /series liefern (neu deployen), danach „Kurse abrufen“.'+(Object.values(window.DERR||{})[0]?' Antwort des Workers: '+Object.values(window.DERR)[0]+'.':''):'Monatsansicht, weil aktuelle Kurse fehlen. Bitte „Kurse abrufen“.';l.style.display='block'}}else{const l=$('#wnote');if(l){const ms=(window.DMISS||[]).map(t=>nameOf(t)||t);if(ms.length){l.textContent='Tagesansicht als Näherung: für '+ms.slice(0,6).join(', ')+' fehlen Tageskurse, diese Titel laufen zum Einstandswert.';l.style.display='block'}}}}
  else if(dt=='d'){const k2=[...ks];for(let i=1;i<=Math.max(6,11-now.getMonth());i++)k2.push(addM(now,i));
   chart('c4',{type:'bar',data:{labels:k2.map(lab),datasets:[{label:'Erhalten',data:k2.map(k=>k>cur?null:divs.filter(t=>ym(t.date)==k).reduce((s,t)=>s+t.amount,0)),backgroundColor:P[1],borderRadius:0},{label:'Prognose',data:k2.map(k=>k>cur?fc.filter(t=>t.ym==k).reduce((s,t)=>s+t.a,0):null),backgroundColor:HP,borderColor:HB,borderWidth:1,borderRadius:0}]},options:{plugins:{legend:{display:false},tooltip:{...TT,callbacks:{label:c=>c.dataset.label+': '+eur(c.raw)}}},scales:{x:{stacked:true,grid:{display:false}},y:{stacked:true,ticks:{callback:EY}}}}})}}
 function crkSplit(by){const g={},n={},add=(k,v,c)=>{g[k]=(g[k]||0)+v;n[k]=(n[k]||0)+c},cn=mkCanon();
