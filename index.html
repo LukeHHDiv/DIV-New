@@ -161,7 +161,7 @@ let tab='dash',opt={act:true,fc:true,cum:true,dim:'t',tag:'',per:'0',dtab:'d'},c
 const save=()=>{try{localStorage.setItem(pk('dt'),JSON.stringify(Sraw()))}catch(e){}if(typeof syTM=='function')syTM()};
 const MN=['Jan','Feb','Mär','Apr','Mai','Jun','Jul','Aug','Sep','Okt','Nov','Dez'];
 const tabs={dash:'Dashboard',dvd:'Dividenden · Übersicht',dvm:'Dividenden · Monatlich fortlaufend',dvy:'Dividenden · Monatlich pro Jahr',dvc:'Dividenden · Akkumuliert pro Jahr',dtx:'Dividenden · Steuer',cal:'Dividendenkalender',ana:'Analyse',cash:'Kapitalfluss',ovl:'ETF-Vergleich',hold:'Holdings',dck:'Datencheck',act:'Aktivitäten',det:'Details'};
-$('#menu').onclick=e=>{const k=e.target.closest('[data-k]');if(k){tab=k.dataset.k;$('#sb').classList.remove('open');render()}};$('#bn').onclick=e=>{const b=e.target.closest('[data-n]');if(!b)return;tab=b.dataset.n;if(tab=='dash')opt.dtab='d';$('#sb').classList.remove('open');render()};
+$('#menu').onclick=e=>{const k=e.target.closest('[data-k]');if(k){tab=k.dataset.k;$('#sb').classList.remove('open');scrollTo(0,0);render()}};$('#bn').onclick=e=>{const b=e.target.closest('[data-n]');if(!b)return;tab=b.dataset.n;if(tab=='dash')opt.dtab='d';$('#sb').classList.remove('open');scrollTo(0,0);render()};
 $('#mpf').onclick=()=>{$('#sb').classList.remove('open');$('#fab').classList.remove('on');pfDlg2()};$('#mpdf').onclick=()=>{$('#sb').classList.remove('open');$('#fab').classList.remove('on');pickPdf()};$('#fab').onclick=()=>{const o=$('#sb').classList.toggle('open');$('#fab').classList.toggle('on',o)};document.addEventListener('click',e=>{if(!e.target.closest('#sb,#bn,#fab')){$('#sb').classList.remove('open');$('#fab').classList.remove('on')}});$('#menu').addEventListener('click',e=>{if(e.target.closest('#demo,#exp,#clr'))$('#sb').classList.remove('open')});
 const ym=d=>d.slice(0,7),key=t=>t.xid?'id:'+t.xid:[t.date,t.type,t.ticker,(+t.qty).toFixed(4),(+t.amount).toFixed(2)].join('|');
 function holdings(){const h={};[...S.tx].sort((a,b)=>a.date<b.date?-1:1).forEach(t=>{if(!t.ticker||!['buy','sell','div'].includes(t.type))return;const x=h[t.ticker]||(h[t.ticker]={t:t.ticker,name:t.name,q:0,cost:0,div:0});
@@ -428,7 +428,7 @@ const PX=i=>i<8?P[i]:h2x(Math.round((i*137.5)%360),42,62),TC={},tcol=t=>TC[t]||(
 const nameOf=t=>(S.tx.find(x=>x.ticker==t&&x.name)||{}).name||'',nx=k=>addM(new Date(+k.slice(0,4),+k.slice(5)-1,1),1),dm=d=>d.slice(8,10)+'.'+d.slice(5,7)+'.'+d.slice(2,4);
 function seedC(){const s={};rawTx().filter(t=>t.type=='div'&&t.ticker).forEach(t=>s[t.ticker]=(s[t.ticker]||0)+t.amount);Object.keys(s).sort((a,b)=>s[b]-s[a]).forEach(t=>tcol(t))}
 const ST=[['dvd','Übersicht'],['dvy','Monatlich (pro Jahr)'],['dvc','Akkumuliert (pro Jahr)'],['dtx','Steuer']];
-const stabs=()=>bnBar()+`<div class="stabs">${ST.map(([k,l])=>`<button class="${tab==k?'on':''}" onclick="tab='${k}';render()">${l}</button>`).join('')}</div>`;
+const stabs=()=>bnBar()+`<div class="stabs">${ST.map(([k,l])=>`<button class="${tab==k?'on':''}" onclick="tab='${k}';scrollTo(0,0);render()">${l}</button>`).join('')}</div>`;
 const EY=v=>v+' €',MNL=k=>MN[+k.slice(5)-1]+' '+k.slice(0,4),TT={backgroundColor:'#17181d',borderColor:'#30333a',borderWidth:1,titleColor:'#e8e8ea',bodyColor:'#c8c8cc',padding:10,boxPadding:4,usePointStyle:true,cornerRadius:8};
 const RM=matchMedia('(prefers-reduced-motion:reduce)').matches;
 const dhBg=cols=>ctx=>{const h=ctx.chart._dh,c=cols[ctx.dataIndex]||'#888';return h==null||h<0||h===ctx.dataIndex||c.length!=7?c:c+'8c'};
