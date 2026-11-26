@@ -108,6 +108,15 @@ dialog button{background:var(--neon2);color:#03110a;border:0;border-radius:8px;p
 dialog button.sec{background:#1d1f25;color:var(--tx)}
 dialog .hint{color:var(--mu);font-size:13px}
 body.priv .pv{filter:blur(2.4vh)}
+.funw{position:relative;height:72vh}
+svg.fun{width:100%;height:100%;overflow:visible}
+svg.fun text{font-family:inherit}
+.fcap{position:absolute;left:0;right:0;top:-2vh;text-align:center;font-size:4.8vh;font-weight:800;letter-spacing:-.01em;opacity:0;transform:translateY(2vh) rotate(-1deg);transition:opacity .6s,transform .6s cubic-bezier(.2,1.5,.4,1)}
+.fcap.in{opacity:1;transform:rotate(-1deg)}
+.bob{animation:bob .8s ease-in-out infinite alternate}@keyframes bob{to{transform:translateY(-16px)}}
+.flame{animation:fl .16s ease-in-out infinite alternate;transform-box:fill-box;transform-origin:center bottom}@keyframes fl{to{transform:scale(1.1,.9)}}
+.pop{animation:pop .45s cubic-bezier(.2,1.6,.4,1);transform-box:fill-box;transform-origin:center}@keyframes pop{from{transform:scale(.2);opacity:0}}
+.spin{animation:spin 1.2s linear infinite;transform-box:fill-box;transform-origin:center}@keyframes spin{to{transform:rotate(360deg)}}
 </style>
 </head>
 <body>
@@ -116,6 +125,7 @@ body.priv .pv{filter:blur(2.4vh)}
  <section class="sl" id="v-pf"></section>
  <section class="sl" id="v-mv"></section>
  <section class="sl" id="v-dv"></section>
+ <section class="sl" id="v-fn"></section>
  <section class="sl" id="v-nx"></section>
  <section class="sl" id="v-ch"></section>
  <section class="sl" id="v-empty"></section>
@@ -129,9 +139,9 @@ body.priv .pv{filter:blur(2.4vh)}
  <div class="row"><label>Trading-212-Passwort <input type="password" id="ct2" placeholder="wie in der App unter Daten → Trading 212"></label><button type="button" class="sec" id="ct2t" style="padding:5px 10px">Testen</button><span id="ct2s" class="hint"></span></div>
  <div class="row"><label>Portfolio <select id="cp"></select></label><span class="hint">Liste erscheint nach dem ersten erfolgreichen Sync.</span></div>
  <div class="row"><b>Slides &amp; Anzeigezeit</b> <span class="hint">Haken = anzeigen · Zahl = Sekunden, wie lange der Slide stehen bleibt</span></div>
- <div id="cvw" style="display:grid;grid-template-columns:repeat(5,auto);gap:8px 22px;justify-content:start;margin:6px 0 10px">
-  <label><input type="checkbox" value="pf"> 1 Portfolio</label><label><input type="checkbox" value="mv"> 2 Gewinner/Verlierer</label><label><input type="checkbox" value="dv"> 3 Dividenden</label><label><input type="checkbox" value="nx"> 4 Nächste Dividenden</label><label><input type="checkbox" value="ch"> 5 Monatsdiagramm</label>
-  <label><input type="number" data-d="pf" min="3" max="600" style="width:70px"> Sek.</label><label><input type="number" data-d="mv" min="3" max="600" style="width:70px"> Sek.</label><label><input type="number" data-d="dv" min="3" max="600" style="width:70px"> Sek.</label><label><input type="number" data-d="nx" min="3" max="600" style="width:70px"> Sek.</label><label><input type="number" data-d="ch" min="3" max="600" style="width:70px"> Sek.</label>
+ <div id="cvw" style="display:grid;grid-template-columns:repeat(6,auto);gap:8px 22px;justify-content:start;margin:6px 0 10px">
+  <label><input type="checkbox" value="pf"> 1 Portfolio</label><label><input type="checkbox" value="mv"> 2 Gewinner/Verlierer</label><label><input type="checkbox" value="dv"> 3 Dividenden</label><label><input type="checkbox" value="fn"> ☺ Spaß-Sketch</label><label><input type="checkbox" value="nx"> 4 Nächste Dividenden</label><label><input type="checkbox" value="ch"> 5 Monatsdiagramm</label>
+  <label><input type="number" data-d="pf" min="3" max="600" style="width:70px"> Sek.</label><label><input type="number" data-d="mv" min="3" max="600" style="width:70px"> Sek.</label><label><input type="number" data-d="dv" min="3" max="600" style="width:70px"> Sek.</label> <label><input type="number" data-d="fn" min="3" max="600" style="width:70px"> Sek.</label><label><input type="number" data-d="nx" min="3" max="600" style="width:70px"> Sek.</label><label><input type="number" data-d="ch" min="3" max="600" style="width:70px"> Sek.</label>
  </div>
  <div class="row"><label>Alle auf <input type="number" id="ci" min="3" max="600" style="width:70px"> Sek. <button type="button" class="sec" id="call" style="padding:5px 10px">setzen</button></label>
   <label>Übergang <select id="ctr"><option value="glide">Gleiten</option><option value="slide">Schieben</option><option value="fade">Überblenden</option><option value="zoom">Zoom</option></select></label>
@@ -142,13 +152,13 @@ body.priv .pv{filter:blur(2.4vh)}
 </dialog>
 <script>
 'use strict';
-const VER='2026-11-24.2'; // bei jeder Änderung hochzählen – die Anzeige lädt sich dann selbst neu
+const VER='2026-11-26.2'; // bei jeder Änderung hochzählen – die Anzeige lädt sich dann selbst neu
 const $=s=>document.querySelector(s);
 const LS={get(k,d){try{const v=localStorage.getItem(k);return v==null?d:JSON.parse(v)}catch(e){return d}},raw(k){try{return localStorage.getItem(k)}catch(e){return null}},set(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}}};
-const VIEWS={pf:'Portfolio',mv:'Gewinner & Verlierer heute',dv:'Dividenden',nx:'Nächste Dividenden',ch:'Dividenden pro Monat'};
+const VIEWS={pf:'Portfolio',fn:'Spaß',mv:'Gewinner & Verlierer heute',dv:'Dividenden',nx:'Nächste Dividenden',ch:'Dividenden pro Monat'};
 
 // ---------- Konfiguration ----------
-let C=Object.assign({w:'',c:'',p:'',views:['pf','mv','dv','nx','ch'],iv:12,dur:{},tr:'glide',sp:'n',priv:false,t2:''},LS.get('dd_cfg',{}));if(!C.dur)C.dur={};if(!C.m5){if(!C.views.includes('mv')){const i=C.views.indexOf('pf');C.views.splice(i<0?0:i+1,0,'mv')}C.m5=1}
+let C=Object.assign({w:'',c:'',p:'',views:['pf','mv','dv','nx','ch'],iv:12,dur:{},tr:'glide',sp:'n',priv:false,t2:''},LS.get('dd_cfg',{}));if(!C.dur)C.dur={};if(!C.m7){const i=C.views.indexOf('dv');C.views.splice(i<0?C.views.length:i+1,0,'fn');if(!C.dur.fn)C.dur.fn=12;C.m7=1}if(!C.m5){if(!C.views.includes('mv')){const i=C.views.indexOf('pf');C.views.splice(i<0?0:i+1,0,'mv')}C.m5=1}
 if(!C.w)C.w=LS.raw('divworker')||'';
 if(!C.c)C.c=(LS.raw('sycode')||'').trim();
 if(!C.t2)C.t2=(LS.raw('t2pw')||'').trim();
@@ -339,7 +349,120 @@ function vCH(R){const B=R.bars,W=1840,Hh=290,pad=10,top=30,mx=Math.max(1,...B.ma
  <line x1="${nowX+bw/2}" x2="${nowX+bw/2}" y1="${top-10}" y2="${top+Hh}" stroke="#8d9098" stroke-opacity=".35" stroke-dasharray="4 6"/>
  ${g}</svg>`}
 
-const RENDER={pf:vPF,mv:vMV,dv:vDV,nx:vNX,ch:vCH};
+(function(){
+// ---------- Spaß-Sketche (Zufallsgenerator) ----------
+const FUN={t:[],raf:0,tk:[],last:-1};
+const NS='http://www.w3.org/2000/svg';
+const S=(tag,a,p)=>{const e=document.createElementNS(NS,tag);for(const k in a)e.setAttribute(k,a[k]);if(p)p.appendChild(e);return e};
+const rnd=(a,b)=>a+Math.random()*(b-a),pick=a=>a[Math.floor(Math.random()*a.length)];
+const at=(ms,f)=>FUN.t.push(setTimeout(()=>{try{f()}catch(e){}},ms));
+function funStop(){FUN.t.forEach(clearTimeout);FUN.t=[];cancelAnimationFrame(FUN.raf);FUN.raf=0;FUN.tk=[]}
+function funLoop(){let last=performance.now();const step=n=>{const dt=Math.min(2,(n-last)/16.67);last=n;FUN.tk=FUN.tk.filter(f=>f(dt)!==false);FUN.raf=requestAnimationFrame(step)};FUN.raf=requestAnimationFrame(step)}
+const K=1.55,BH=Math.round(38*K),W=1800,FL=360,INK='#e8e8ea',LINE='#1a1b20';
+const place=(g,x,y,r=0,s=1)=>g.setAttribute('transform',`translate(${x} ${y}) rotate(${r}) scale(${s})`);
+// Körper mit einfacher Schwerkraft, Abprallen und Reibung
+function body(g,o){const b=Object.assign({x:0,y:0,r:0,vx:0,vy:0,vr:0,h:10,bo:.35,floor:FL},o);place(g,b.x,b.y,b.r);
+ FUN.tk.push(dt=>{b.vy+=.55*dt;b.x+=b.vx*dt;b.y+=b.vy*dt;b.r+=b.vr*dt;const f=typeof b.floor=='function'?b.floor(b.x):b.floor;
+  if(b.y+b.h>f){b.y=f-b.h;b.vy*=-b.bo;b.vx*=.78;b.vr*=.55;if(Math.abs(b.vy)<1.2){b.vy=0;if(b.land){b.land(b);b.land=null}}}
+  place(g,b.x,b.y,b.r);return !b.dead});return b}
+function caption(el,txt){const c=el.querySelector('.fcap');c.textContent=txt;c.classList.add('in')}
+function bubble(p,x,y,txt){const g=S('g',{class:'pop'},p);const w=txt.length*15+40;
+ S('path',{d:`M${x-w/2} ${y-70} h${w} a14 14 0 0 1 14 14 v32 a14 14 0 0 1 -14 14 h${-w/2+30} l-22 22 l2 -22 h${-w/2+-10} a14 14 0 0 1 -14 -14 v-32 a14 14 0 0 1 14 -14z`,fill:'#f3f1ea',stroke:LINE,'stroke-width':3},g);
+ S('text',{x,y:y-37,'text-anchor':'middle','font-size':26,'font-weight':800,fill:LINE},g).textContent=txt;return g}
+function bull(p,flip){const g=S('g',{},p),i=S('g',{transform:`scale(${flip?-K:K} ${K})`},g),st={stroke:LINE,'stroke-width':3.5,'stroke-linejoin':'round'};
+ [-26,-10,14,28].forEach((x,k)=>S('line',{x1:x,y1:14,x2:x+(k%2?3:-3),y2:38,...st,'stroke-linecap':'round'},i));
+ S('ellipse',{cx:0,cy:0,rx:44,ry:26,fill:'#c2a165',...st},i);S('path',{d:'M-44 -6 q-16 6 -10 22',fill:'none',...st},i);
+ S('circle',{cx:42,cy:-16,r:19,fill:'#c2a165',...st},i);S('path',{d:'M30 -30 q-10 -16 6 -20 M54 -30 q10 -16 -6 -20',fill:'none',stroke:'#f3f1ea','stroke-width':5,'stroke-linecap':'round'},i);
+ S('circle',{cx:48,cy:-20,r:3.2,fill:LINE},i);S('ellipse',{cx:52,cy:-6,rx:10,ry:7,fill:'#d9b98c',...st},i);S('circle',{cx:56,cy:2,r:5,fill:'none',stroke:'#e8d27a','stroke-width':3},i);return g}
+function bear(p,flip){const g=S('g',{},p),i=S('g',{transform:`scale(${flip?-K:K} ${K})`},g),st={stroke:LINE,'stroke-width':3.5,'stroke-linejoin':'round'};
+ [-26,-10,14,28].forEach(x=>S('line',{x1:x,y1:14,x2:x,y2:38,stroke:LINE,'stroke-width':9,'stroke-linecap':'round'},i));
+ S('ellipse',{cx:0,cy:0,rx:46,ry:30,fill:'#8a6b55',...st},i);
+ S('circle',{cx:-44,cy:-18,r:21,fill:'#8a6b55',...st},i);S('circle',{cx:-56,cy:-36,r:7,fill:'#8a6b55',...st},i);S('circle',{cx:-32,cy:-38,r:7,fill:'#8a6b55',...st},i);
+ S('ellipse',{cx:-60,cy:-12,rx:10,ry:8,fill:'#c7a98f',...st},i);S('circle',{cx:-66,cy:-14,r:3,fill:LINE},i);S('circle',{cx:-48,cy:-22,r:3.2,fill:LINE},i);return g}
+
+const SKETCH=[
+ // 1) Zum Mond … und zurück
+ function(svg,el){const g=S('g',{filter:'url(#rough)'},svg),N=12,pts=[];let y=320;
+  for(let i=0;i<=N;i++){pts.push([150+i*(1350/N),y]);y-=rnd(8,40);if(i==N-3)y-=60}
+  S('line',{x1:110,y1:FL,x2:1700,y2:FL,stroke:'#3a3c44','stroke-width':3,'stroke-dasharray':'2 10'},g);
+  const segs=[];for(let i=0;i<N;i++){const [a,b]=[pts[i],pts[i+1]],sg=S('g',{},g),dx=b[0]-a[0],dy=b[1]-a[1];
+   S('line',{x1:-dx/2,y1:-dy/2,x2:dx/2,y2:dy/2,stroke:'#5fae8a','stroke-width':9,'stroke-linecap':'round'},sg);place(sg,(a[0]+b[0])/2,(a[1]+b[1])/2);sg.style.opacity=0;segs.push({sg,cx:(a[0]+b[0])/2,cy:(a[1]+b[1])/2,ang:Math.atan2(dy,dx)*57.3})}
+  const B=bull(g);let t0=performance.now();
+  FUN.tk.push(()=>{const p=Math.min(1,(performance.now()-t0)/3600),f=p*N,i=Math.min(N-1,Math.floor(f)),q=f-i,[a,b]=[pts[i],pts[i+1]];
+   segs.forEach((s,k)=>{if(k<=i)s.sg.style.opacity=1});place(B,a[0]+(b[0]-a[0])*q,a[1]+(b[1]-a[1])*q-BH,Math.atan2(b[1]-a[1],b[0]-a[0])*57.3*.6);return p<1});
+  at(3700,()=>bubble(g,pts[N][0]-40,pts[N][1]-BH-40,pick(['ZUM MOND!','ALL IN!','NUR NOCH HOCH!','HODL!'])));
+  at(5200,()=>{g.querySelector('.pop').remove();const tip=pts[N];
+   segs.forEach((s,k)=>body(s.sg,{x:s.cx,y:s.cy,r:0,vx:rnd(-3,3),vy:rnd(-6,-1)-(k/N)*4,vr:rnd(-6,6),h:6,bo:.4}));
+   body(B,{x:tip[0],y:tip[1]-BH,r:0,vx:-2,vy:-9,vr:-14,h:BH,bo:.3,land:()=>{const s=S('text',{x:0,y:-40,'font-size':30,fill:'#e8d27a','text-anchor':'middle',class:'spin'},B);s.textContent='★ ★'}})});
+  at(6600,()=>caption(el,pick(['Buy high, sell low – bewährt seit 1929.','Technische Analyse: Linie ging hoch. Dann nicht mehr.','Stop-Loss? Klang nach Sport.','Das war keine Korrektur. Das war ein Statement.'])))},
+
+ // 2) Kerzenchart, wörtlich
+ function(svg,el){const g=S('g',{filter:'url(#rough)'},svg),n=13,cs=[];
+  S('line',{x1:110,y1:FL,x2:1700,y2:FL,stroke:'#3a3c44','stroke-width':3},g);
+  for(let i=0;i<n;i++){const up=Math.random()<.55,h=rnd(80,230),x=180+i*110,o=S('g',{},g),inn=S('g',{class:'bob',style:`animation-delay:${i*.09}s`},o);
+   S('line',{x1:0,y1:-h-rnd(15,40),x2:0,y2:0,stroke:INK,'stroke-width':3},inn);
+   const r=S('rect',{x:-30,y:-h,width:60,height:h,rx:4,fill:up?'#5fae8a':'#b97890',stroke:LINE,'stroke-width':3.5},inn);
+   S('circle',{cx:-8,cy:-h+22,r:3.5,fill:LINE},inn);S('circle',{cx:8,cy:-h+22,r:3.5,fill:LINE},inn);
+   S('path',{d:`M-8 ${-h+36} q8 ${up?8:-6} 16 0`,fill:'none',stroke:LINE,'stroke-width':3,'stroke-linecap':'round'},inn);
+   place(o,x,FL);cs.push({o,inn,r,h,up,x})}
+  const red=cs.filter(c=>!c.up).sort((a,b)=>b.h-a.h)[0]||cs[0];
+  at(1800,()=>{const f=S('g',{class:'flame'},red.inn);S('path',{d:`M0 ${-red.h-30} q-16 -22 0 -52 q16 30 0 52z`,fill:'#ffb547',stroke:LINE,'stroke-width':2.5},f);S('path',{d:`M0 ${-red.h-32} q-7 -10 0 -24 q7 12 0 24z`,fill:'#fff1b8'},f)});
+  at(2400,()=>{red.inn.classList.remove('bob');let s=1;FUN.tk.push(dt=>{s-=.0035*dt;red.inn.style.transform=`scaleY(${Math.max(.25,s)})`;red.inn.style.transformOrigin='center bottom';
+    if(Math.random()<.05*dt){const d=S('circle',{r:6,fill:'#b97890',stroke:LINE,'stroke-width':2},g);body(d,{x:red.x+rnd(-20,20),y:FL-red.h*s,vx:rnd(-.5,.5),h:5,bo:.1})}return s>.25})});
+  at(5600,()=>{cs.forEach(c=>c.inn.classList.remove('bob'));cs.forEach((c,k)=>at(k*130,()=>{let r=0,v=0;FUN.tk.push(dt=>{v+=.5*dt;r=Math.min(86,r+v*dt);place(c.o,c.x,FL,r);return r<86})}))});
+  at(7600,()=>caption(el,pick(['Kerzenchart – jetzt auch wörtlich.','Dominoeffekt am Markt: hiermit bewiesen.','Rote Kerzen brennen schneller. Ist halt so.','Charttechnik: „Kopf-Schulter-Umfallen“.'])))},
+
+ // 3) Bulle gegen Bär – Tauziehen
+ function(svg,el){const g=S('g',{filter:'url(#rough)'},svg);S('line',{x1:110,y1:FL,x2:1700,y2:FL,stroke:'#3a3c44','stroke-width':3},g);
+  const Bu=bull(g,true),Be=bear(g,true),ropeL=S('line',{stroke:'#d9b98c','stroke-width':7,'stroke-linecap':'round'},g),ropeR=S('line',{stroke:'#d9b98c','stroke-width':7,'stroke-linecap':'round'},g);
+  const tag=S('g',{},g);S('rect',{x:-80,y:-32,width:160,height:64,rx:10,fill:'#f3f1ea',stroke:LINE,'stroke-width':3.5},tag);const tt=S('text',{x:0,y:12,'text-anchor':'middle','font-size':34,'font-weight':800,fill:LINE},tag);
+  const P0=rnd(40,120);let t0=performance.now(),run=true;
+  FUN.tk.push(()=>{if(!run)return false;const t=(performance.now()-t0)/1000,a=Math.sin(t*2.3)*Math.min(260,30+t*55),cx=900+a;
+   place(Bu,400+a*.35,FL-BH,-8+a*.02);place(Be,1400+a*.35,FL-BH,8+a*.02);
+   ropeL.setAttribute('x1',470+a*.35);ropeL.setAttribute('y1',FL-BH-10);ropeL.setAttribute('x2',cx-80);ropeL.setAttribute('y2',FL-120);
+   ropeR.setAttribute('x1',cx+80);ropeR.setAttribute('y1',FL-120);ropeR.setAttribute('x2',1320+a*.35);ropeR.setAttribute('y2',FL-BH-10);
+   place(tag,cx,FL-120);tt.textContent=(P0*(1+a/900)).toFixed(2).replace('.',',')+' €';tt.setAttribute('fill',a>0?'#2d7a55':'#9c4058');return true});
+  at(5800,()=>{run=false;const a=+tag.getAttribute('transform').match(/translate\(([-\d.]+)/)[1];
+   body(Bu,{x:400,y:FL-BH,vx:-7,vy:-8,vr:-9,h:BH,bo:.3});body(Be,{x:1400,y:FL-BH,vx:7,vy:-8,vr:9,h:BH,bo:.3});
+   body(tag,{x:a,y:FL-120,vy:-4,vr:rnd(-4,4),h:30,bo:.45});ropeL.remove();ropeR.remove();
+   [[-1,500],[1,1300]].forEach(([d,x])=>{const r=S('g',{},g);S('path',{d:'M-90 0 q45 -20 90 0 q45 20 90 0',fill:'none',stroke:'#d9b98c','stroke-width':7,'stroke-linecap':'round'},r);body(r,{x,y:FL-100,vx:d*4,vr:d*6,h:4,bo:.2})})});
+  at(7200,()=>caption(el,pick(['Seitwärtsmarkt: Am Ende liegen alle.','Bulle vs. Bär – Unentschieden durch Seilriss.','Volatilität, live erklärt.','Marktgleichgewicht hält genau 5,8 Sekunden.'])))},
+
+ // 4) Dividendenregen + Finanzamt
+ function(svg,el){const g=S('g',{filter:'url(#rough)'},svg);S('line',{x1:110,y1:FL,x2:1700,y2:FL,stroke:'#3a3c44','stroke-width':3},g);
+  const cl=S('g',{},g);[[0,0,46],[50,-18,56],[110,0,44],[60,14,40],[-40,10,34]].forEach(([x,y,r])=>S('circle',{cx:x,cy:y,r,fill:'#cfd2d6',stroke:LINE,'stroke-width':3.5},cl));
+  S('circle',{cx:35,cy:-6,r:4,fill:LINE},cl);S('circle',{cx:75,cy:-6,r:4,fill:LINE},cl);S('path',{d:'M42 12 q13 12 26 0',fill:'none',stroke:LINE,'stroke-width':3.5,'stroke-linecap':'round'},cl);
+  const heap={},bk=x=>Math.round(x/34),fl=x=>FL-(heap[bk(x)]||0),coins=[];let t0=performance.now(),cx=600,paid=0;
+  FUN.tk.push(()=>{const t=(performance.now()-t0)/1000;cx=900+Math.sin(t*1.3)*520;place(cl,cx-50,80);return t<6.5});
+  const drop=()=>{const c=S('g',{},g);S('circle',{r:18,fill:'#e8d27a',stroke:LINE,'stroke-width':3},c);S('text',{y:8,'text-anchor':'middle','font-size':22,'font-weight':800,fill:LINE},c).textContent='€';
+   const b=body(c,{x:cx+rnd(-50,50),y:120,vx:rnd(-1,1),vr:rnd(-5,5),h:17,bo:.25,floor:fl,land:b=>{heap[bk(b.x)]=(heap[bk(b.x)]||0)+22;paid++}});coins.push({c,b})};
+  for(let i=0;i<44;i++)at(300+i*120,drop);
+  at(6200,()=>{const z=S('g',{},g),tx=S('text',{x:0,y:-58,'text-anchor':'middle','font-size':24,'font-weight':800,fill:INK},z);tx.textContent='FINANZAMT';
+   S('path',{d:'M-90 -40 h180 l-18 80 h-144z',fill:'#5f8fbf',stroke:LINE,'stroke-width':3.5},z);S('text',{x:0,y:12,'text-anchor':'middle','font-size':26,'font-weight':800,fill:'#f3f1ea'},z).textContent='26,375 %';
+   let x=-150;FUN.tk.push(dt=>{x+=9*dt;place(z,x,FL-42);coins.forEach(k=>{if(!k.chk&&Math.abs(k.b.x-x)<70){k.chk=1;if(Math.random()<.26375){k.b.dead=1;const c=k.c;c.classList.add('pop');FUN.tk.push(dt=>{const o=+(c.style.opacity||1)-.06*dt;c.style.opacity=o;c.setAttribute('transform',c.getAttribute('transform').replace(/translate\(([-\d.]+) ([-\d.]+)\)/,(m,a,b)=>`translate(${a} ${+b-4*dt})`));if(o<=0){c.remove();return false}})}}});return x<1950})});
+  at(8200,()=>caption(el,pick(['Passives Einkommen. Passive Steuer inklusive.','Dividendenregen – das Finanzamt hat einen Eimer.','Kapitalertrag: kurz da, dann 26,375 % weniger da.','Brutto ist das neue Netto. Nicht.'])))},
+
+ // 5) Analysten-Kursziel per Würfel
+ function(svg,el){const g=S('g',{filter:'url(#rough)'},svg);S('line',{x1:110,y1:FL,x2:1700,y2:FL,stroke:'#3a3c44','stroke-width':3},g);
+  const T=S('text',{x:900,y:150,'text-anchor':'middle','font-size':44,'font-weight':800,fill:INK},g);T.textContent='Analysten ermitteln das Kursziel …';
+  const PIP={1:[[0,0]],2:[[-14,-14],[14,14]],3:[[-14,-14],[0,0],[14,14]],4:[[-14,-14],[14,-14],[-14,14],[14,14]],5:[[-14,-14],[14,-14],[0,0],[-14,14],[14,14]],6:[[-14,-15],[14,-15],[-14,0],[14,0],[-14,15],[14,15]]};
+  const die=(x,vx)=>{const d=S('g',{},g),dd=S('g',{transform:'scale(1.4)'},d);S('rect',{x:-34,y:-34,width:68,height:68,rx:12,fill:'#f3f1ea',stroke:LINE,'stroke-width':4},dd);const pp=S('g',{},dd);
+   const face=n=>{pp.innerHTML='';PIP[n].forEach(([a,b])=>S('circle',{cx:a,cy:b,r:6,fill:LINE},pp))};let n=1;face(1);
+   let roll=true;FUN.tk.push(()=>{if(roll&&Math.random()<.3){n=1+Math.floor(Math.random()*6);face(n)}return roll});
+   const o={n:()=>n};body(d,{x,y:150,vx,vy:-6,vr:vx*2.2,h:48,bo:.5,land:b=>{roll=false;b.vr=0;b.r=Math.round(b.r/90)*90;o.done=1}});return o};
+  const d1=die(140,15.5),d2=die(330,8.5);
+  at(4300,()=>{const k=(d1.n()+d2.n())*rnd(6,14);T.textContent=`Kursziel: ${k.toFixed(2).replace('.',',')} € · Konfidenz: hoch`;T.classList.add('pop')});
+  at(5800,()=>caption(el,pick(['Fundamentalanalyse, Kurzfassung.','Unsere Analysten sind sich zu 50 % sicher. Ungefähr.','Kursziel bestätigt. Methode: Würfel. Wie immer.','„Strong Buy“ – bei einer Sechs.'])))}
+];
+function runFun(el,force){funStop();const svg=el.querySelector('svg.fun');if(!svg)return;
+ [...svg.childNodes].forEach(n=>{if(n.nodeName!='defs')n.remove()});const fc=el.querySelector('.fcap');if(fc){fc.classList.remove('in');fc.textContent=''}
+ let i=force;if(i==null)do{i=Math.floor(Math.random()*SKETCH.length)}while(SKETCH.length>1&&i===FUN.last);FUN.last=i;
+ svg.querySelector('#rough feTurbulence').setAttribute('seed',Math.floor(Math.random()*99));funLoop();SKETCH[i](svg,el)}
+function vFN(){return`<div class="funw"><svg class="fun" viewBox="0 0 ${W} 400" preserveAspectRatio="xMidYMid meet"><defs><filter id="rough"><feTurbulence type="fractalNoise" baseFrequency="0.025" numOctaves="2" seed="3"/><feDisplacementMap in="SourceGraphic" scale="3.2"/></filter></defs></svg><div class="fcap"></div></div>`}
+
+window.vFN=vFN;window.runFun=runFun;window.funStop=funStop;
+})();
+const RENDER={pf:vPF,mv:vMV,fn:vFN,dv:vDV,nx:vNX,ch:vCH};
 
 // ---------- Ablauf ----------
 let R=null,idx=0,list=[],paused=false,t0=0,raf=0;
@@ -353,7 +476,7 @@ function show(i,dir=1){if(!D||!R){empty();return}
  $('#v-empty').classList.remove('on');idx=(i+list.length)%list.length;const v=list[idx];
  document.querySelectorAll('.sl.on').forEach(x=>{if(x.id!='v-'+v){x.classList.remove('on');x.classList.add('out');setTimeout(()=>x.classList.remove('out'),1700)}});
  const el=$('#v-'+v);el.classList.remove('on');el.innerHTML=RENDER[v](R);void el.offsetWidth;
- requestAnimationFrame(()=>{el.classList.add('on');countUp(el);setTimeout(()=>el.querySelectorAll('[data-w]').forEach(b=>b.style.width=b.dataset.w+'%'),60)});
+ if(window.funStop)funStop();requestAnimationFrame(()=>{el.classList.add('on');countUp(el);if(v=='fn')runFun(el);setTimeout(()=>el.querySelectorAll('[data-w]').forEach(b=>b.style.width=b.dataset.w+'%'),60)});
  $('#ttl').textContent=VIEWS[v];$('#pfn').textContent=D.p?'· '+D.p:'';
  [...$('#dots').children].forEach((d,j)=>d.classList.toggle('on',j==idx));t0=performance.now()}
 function tick(n){if(!paused&&R&&list.length>1){const p=Math.min(1,(n-t0)/(((+C.dur[list[idx]])||C.iv)*1000));$('#prog').style.width=p*100+'%';if(p>=1)show(idx+1)}else if(!paused)$('#prog').style.width=R?'100%':'0';raf=requestAnimationFrame(tick)}
