@@ -121,6 +121,7 @@ body.priv .blr,body.priv #wv,body.priv #wi{filter:blur(7px);-webkit-filter:blur(
 @media(max-width:560px){.wk .wn{min-width:0;flex:1}.wk .wn b{white-space:normal!important;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;text-overflow:ellipsis;font-size:14.5px;line-height:1.25}.wk.ac{padding:11px 0}.wk.ac .wr{flex:none;max-width:42%}.wk.ac .wr b{font-size:15px}.wk.ac .wr small{font-size:12px;white-space:nowrap}.wk.ac .wn>span{font-size:12px}}
 .dnm{flex:1;min-width:0}.dr{flex:none;text-align:right;white-space:nowrap}
 .pl.wa{color:#e09f3a;background:rgba(224,159,58,.12);border-color:rgba(224,159,58,.4)}
+#m>:first-child{margin-top:26px}#m>.bnr{margin:0}#m>.bnr:first-child{margin-top:26px}#m>.bnr+.stabs{margin-top:14px}
 .stabs i.neu{font-style:normal;font-size:11px;background:#e09f3a;color:#14161a;border-radius:5px;padding:0 5px;margin-left:6px;font-weight:700;vertical-align:1px}
 .dxg{position:relative;max-width:420px;margin:0 auto}.dxg svg{display:block;width:100%;height:auto}.dxc{position:absolute;left:0;right:0;bottom:2px;text-align:center}.dxc small{color:var(--mu);font-size:13px}.dxc b{display:block;font-size:36px;font-weight:600;line-height:1.1;margin:2px 0 6px}
 .dxl{display:flex;flex-wrap:wrap;gap:6px 14px;justify-content:center;margin-top:10px;font-size:13px;color:var(--mu)}.dxl i{display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:6px;vertical-align:-1px}
@@ -289,7 +290,7 @@ const bnM=()=>opt.bn||'e';
 const dvAdj=x=>{if(x.type!='div')return x;let r=TXM.get(x);if(r)return r;const T=taxCalc(),y=x.date.slice(0,4);r={...x,raw:x.amount,amount:bnM()=='b'?grossOf(x):bnM()=='n'?x.amount*(T.f[y]??1):x.amount};TXM.set(x,r);return r};
 const dvTx=()=>S.tx.filter(t=>t.type=='div').map(dvAdj);
 const fcF=(t,k)=>bnM()=='b'?1/(1-whtOf(t)):bnM()=='n'?(taxCalc().pf[k.slice(0,4)]??1):1;
-const bnBar=()=>`<div class="row" style="margin:0 0 10px;gap:8px;flex-wrap:wrap;justify-content:flex-start"><div class="sg2"><button class="${bnM()=='b'?'on':''}" onclick="opt.bn='b';render()">Brutto</button><button class="${bnM()=='e'?'on':''}" onclick="opt.bn='e';render()">Erhalten</button><button class="${bnM()=='n'?'on':''}" onclick="opt.bn='n';render()">Netto</button></div></div>`;
+const bnBar=()=>`<div class="row bnr" style="gap:8px;flex-wrap:wrap;justify-content:flex-start"><div class="sg2"><button class="${bnM()=='b'?'on':''}" onclick="opt.bn='b';render()">Brutto</button><button class="${bnM()=='e'?'on':''}" onclick="opt.bn='e';render()">Erhalten</button><button class="${bnM()=='n'?'on':''}" onclick="opt.bn='n';render()">Netto</button></div></div>`;
 function taxDlg(){const t=TS(),d=$('#dg');d.innerHTML=`<h3 style="margin-top:0">Steuer-Einstellungen</h3><p class="mu" style="font-size:13px">Grundlage der Netto-Werte. Es ist nur eine Schätzung, keine Steuerberatung.</p>
  <label class="mu">Freistellungsauftrag / Sparer-Pauschbetrag (€ pro Jahr)</label><input id="t_fb" type="number" step="1" value="${t.fb}" style="width:100%">
  <label class="mu">Kirchensteuer</label><select id="t_k" style="width:100%">${[[0,'keine'],[8,'8 % (Bayern, BW)'],[9,'9 % (übrige Länder)']].map(([v,l])=>`<option value="${v}" ${t.kist==v?'selected':''}>${l}</option>`).join('')}</select>
