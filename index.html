@@ -1231,11 +1231,11 @@ function dsWSet(i,el){FAC[i].w=+el.value;el.nextElementSibling.textContent=el.va
 function dsWReset(){FAC.forEach((f,i)=>f.w=FW0[i]);dxW(pk('dsw'),FAC.map(f=>f.w));dsi(1);dsW()}
 
 /* --- Sparplan --- */
-let SP=null,SPC=null;const SPD={sel:'DEPOT',n:20,r:200,d:0,g:5,i:2,re:1,tx:1};
+let SP=null,SPC=null;const SPD={sel:'DEPOT',n:20,r:200,d:0,g:5,i:2,re:1,tx:1,dv:0};
 const spClamp=(v,a,b,d)=>isFinite(+v)?Math.min(b,Math.max(a,+v)):d;
-function spBase(){const H=holdings().filter(h=>h.q>0.0001),L=SP.sel=='DEPOT'?H:H.filter(h=>h.t==SP.sel),all=H.reduce((s,h)=>s+mvOf(h),0)||1,v=L.reduce((s,h)=>s+mvOf(h),0),cost=L.reduce((s,h)=>s+h.cost,0),ts=new Set(L.map(h=>h.t)),div=forecast(12).filter(x=>ts.has(x.t)).reduce((s,x)=>s+x.a,0);
- return{v,cost,y:v>0?div/v:0,fs:v/all,nm:SP.sel=='DEPOT'?'deinem Depot':(L[0]?(L[0].name||nameOf(L[0].t)||L[0].t):'')}}
-function spSim(b,n,rate,dyn,re,tax,g,inf){let V=b.v,cash=0,free=1000*b.fs,dv=0,pR=b.cost,l12=0,yd=0;const gm=Math.pow(1+g/100,1/12),N=n*12,now=new Date(),m0=now.getMonth(),y0=now.getFullYear(),val=[V],pd=[pR],yr=[];
+function spBase(){const H=holdings().filter(h=>h.q>0.0001),L=SP.sel=='DEPOT'?H:H.filter(h=>h.t==SP.sel),all=H.reduce((s,h)=>s+mvOf(h),0)||1,v=L.reduce((s,h)=>s+mvOf(h),0),cost=L.reduce((s,h)=>s+h.cost,0),dIn=L.reduce((s,h)=>s+(h.div||0),0),ts=new Set(L.map(h=>h.t)),div=forecast(12).filter(x=>ts.has(x.t)).reduce((s,x)=>s+x.a,0);
+ return{v,cost,dIn,y:v>0?div/v:0,fs:v/all,nm:SP.sel=='DEPOT'?'deinem Depot':(L[0]?(L[0].name||nameOf(L[0].t)||L[0].t):'')}}
+function spSim(b,n,rate,dyn,re,tax,g,inf,dv0){let V=b.v+(dv0?b.dIn:0),cash=0,free=1000*b.fs,dv=0,pR=b.cost,l12=0,yd=0;const gm=Math.pow(1+g/100,1/12),N=n*12,now=new Date(),m0=now.getMonth(),y0=now.getFullYear(),val=[V],pd=[pR],yr=[];
  for(let t=1;t<=N;t++){const cm=(m0+t)%12;if(cm==0)free=1000*b.fs;const r=rate*Math.pow(1+dyn/100,Math.floor((t-1)/12)),df=Math.pow(1+inf/100,-t/12);V=(V+r)*gm;pR+=r*df;
   let d=V*b.y/12;if(tax){const fr=Math.min(free,d);free-=fr;d-=(d-fr)*.26375}if(re)V+=d;else cash+=d;dv+=d*df;yd+=d*df;if(t>N-12)l12+=d*df;
   val.push((V+cash)*df);pd.push(pR);if(cm==11||t==N){yr.push({y:y0+Math.floor((m0+t-1)/12),p:pR,d:yd,v:(V+cash)*df});yd=0}}
@@ -1254,21 +1254,22 @@ function spp(){dxSeen('spp');scrollTo(0,0);SP=Object.assign({},SPD,dxJ(pk('spq')
  <label class="dxr"><span>Kursplus p. a.<b id="spGv"></b></span><input type="range" id="spGr" min="0" max="10" step="0.5" value="${SP.g}" aria-label="Kursplus pro Jahr"></label>
  <label class="dxr"><span>Inflation p. a.<b id="spIv"></b></span><input type="range" id="spIr" min="0" max="5" step="0.5" value="${SP.i}" aria-label="Inflation pro Jahr"></label>
  <label class="dxs"><span>Dividenden wieder anlegen<small>Ausschüttungen kaufen neue Anteile</small></span><input type="checkbox" id="spRe" ${SP.re?'checked':''}></label>
+ <label class="dxs"><span>Bisherige Dividenden zum Start addieren<small>nur wenn nicht reinvestiert, sonst stecken sie schon im Depotwert</small></span><input type="checkbox" id="spDv2" ${SP.dv?'checked':''}></label>
  <label class="dxs"><span>Steuer abziehen<small>26,375 % nach 1.000 € Freibetrag pro Jahr</small></span><input type="checkbox" id="spTx" ${SP.tx?'checked':''}></label></div>
  <div class="card"><details class="dxd"><summary>Jahresübersicht</summary><div id="spY" style="margin-top:8px"></div></details></div>
  <p class="dxn" id="spN"></p>`;
  $('#spC').onclick=e=>{const b=e.target.closest('[data-t]');if(!b)return;SP.sel=b.dataset.t;spSv();document.querySelectorAll('#spC .bmc').forEach(x=>x.classList.toggle('on',x===b));spDraw()};
  $('#spH').onclick=e=>{const b=e.target.closest('[data-n]');if(!b)return;SP.n=+b.dataset.n;spSv();document.querySelectorAll('#spH .bmc').forEach(x=>x.classList.toggle('on',x===b));spDraw()};
- const rd=()=>{SP.r=+$('#spR').value;SP.d=+$('#spD').value;SP.g=+$('#spGr').value;SP.i=+$('#spIr').value;SP.re=$('#spRe').checked?1:0;SP.tx=$('#spTx').checked?1:0;spSv();spDraw()};
- ['spR','spD','spGr','spIr','spRe','spTx'].forEach(i=>$('#'+i).addEventListener('input',rd));
+ const rd=()=>{SP.r=+$('#spR').value;SP.d=+$('#spD').value;SP.g=+$('#spGr').value;SP.i=+$('#spIr').value;SP.re=$('#spRe').checked?1:0;SP.tx=$('#spTx').checked?1:0;SP.dv=$('#spDv2').checked?1:0;spSv();spDraw()};
+ ['spR','spD','spGr','spIr','spRe','spTx','spDv2'].forEach(i=>$('#'+i).addEventListener('input',rd));
  spDraw()}
 function spSv(){dxW(pk('spq'),SP)}
 function spDraw(){if(!dxOn('spp')||!$('#spR'))return;const r=SP.r,n=SP.n,re=!!SP.re,tx=!!SP.tx,b=spBase();
  $('#spRv').textContent=DXE(r,0)+' / Monat';$('#spDv').textContent=SP.d?'+'+DXP(SP.d,0)+' pro Jahr':'keine';$('#spGv').textContent=DXP(SP.g,1);$('#spIv').textContent=DXP(SP.i,1);
- const A=spSim(b,n,r,SP.d,re,tx,SP.g,SP.i),B=spSim(b,n,0,SP.d,re,tx,SP.g,SP.i),C=spSim(b,n,r,SP.d,!re,tx,SP.g,SP.i),g=A.end-A.paid,dRe=A.end-C.end,dRa=A.end-B.end;
+ const A=spSim(b,n,r,SP.d,re,tx,SP.g,SP.i,SP.dv),B=spSim(b,n,0,SP.d,re,tx,SP.g,SP.i,SP.dv),C=spSim(b,n,r,SP.d,!re,tx,SP.g,SP.i,SP.dv),g=A.end-A.paid,dRe=A.end-C.end,dRa=A.end-B.end;
  $('#spT').textContent=`In ${n} Jahren${SP.i>0?' (heutige Kaufkraft)':''} · ${DXE(r,0)} im Monat in ${b.nm}`;$('#spV').textContent=DXE(A.end,0);
- $('#spG').innerHTML=`<span class="pl ${g>=0?'up':'dn'}">${g>=0?'↑':'↓'} ${DXE(Math.abs(g),0)} · ${DXP(A.paid?g/A.paid*100:0)}</span><div class="dxn" style="text-align:center">Heute: ${DXE(b.v,0)} bei ${DXE(b.cost,0)} Einstand</div>`;
- $('#spK').innerHTML=[['Eingezahlt gesamt',DXE(A.paid,0),`Einstand ${DXE(b.cost,0)} + Raten`],['Dividenden gesamt',DXE(A.dv,0),tx?'netto nach Steuer':'brutto'],['Dividende pro Monat',DXE(A.l12/12),`Schnitt im letzten Jahr (${n})`],[re?'Plus durch Wiederanlage':'Verzicht ohne Wiederanlage',(dRe>=0?'+':'')+DXE(dRe,0),re?'gegenüber Auszahlen':'gegenüber Wiederanlage'],['Plus durch Sparrate',(dRa>=0?'+':'')+DXE(dRa,0),'gegenüber keiner Rate'],['Rendite heute',DXP(b.y*100),'erwartete Dividenden, 12 Monate']].map(([a,c,d])=>`<div class="kpi"><small>${a}</small><b>${c}</b><span>${d}</span></div>`).join('');
+ $('#spG').innerHTML=`<span class="pl ${g>=0?'up':'dn'}">${g>=0?'↑':'↓'} ${DXE(Math.abs(g),0)} · ${DXP(A.paid?g/A.paid*100:0)}</span><div class="dxn" style="text-align:center">Heute: ${DXE(b.v+(SP.dv?b.dIn:0),0)} bei ${DXE(b.cost,0)} Einstand</div>`;
+ $('#spK').innerHTML=[['Eingezahlt gesamt',DXE(A.paid,0),`Einstand ${DXE(b.cost,0)} + Raten`],['Dividenden gesamt',DXE(A.dv,0),tx?'netto nach Steuer':'brutto'],['Dividende pro Monat',DXE(A.l12/12),`Schnitt im letzten Jahr (${n})`],[re?'Plus durch Wiederanlage':'Verzicht ohne Wiederanlage',(dRe>=0?'+':'')+DXE(dRe,0),re?'gegenüber Auszahlen':'gegenüber Wiederanlage'],['Plus durch Sparrate',(dRa>=0?'+':'')+DXE(dRa,0),'gegenüber keiner Rate'],['Bisher erhaltene Dividenden',DXE(b.dIn,0),'Rendite heute '+DXP(b.y*100)]].map(([a,c,d])=>`<div class="kpi"><small>${a}</small><b>${c}</b><span>${d}</span></div>`).join('');
  $('#spL1').textContent=re?'Mit Wiederanlage':'Ohne Wiederanlage';
  $('#spY').innerHTML=`<div class="dxy"><span>Jahr</span><span>Eingezahlt</span><span>Dividenden</span><span>Wert Ende</span></div>`+A.yr.map(v=>`<div class="dxy"><span>${v.y}</span><span>${DXE(v.p,0)}</span><span style="color:var(--sg)">${DXE(v.d,0)}</span><span>${DXE(v.v,0)}</span></div>`).join('');
  $('#spN').textContent=`Prognose ab heute, ausgehend vom aktuellen Marktwert: Kurse steigen mit ${DXN(SP.g,1)} % pro Jahr, die Dividendenrendite von ${DXP(b.y*100)} (deine erwarteten Dividenden der nächsten 12 Monate) bleibt gleich. ${SP.i>0?'Alle Beträge sind mit '+DXN(SP.i,1)+' % Inflation pro Jahr auf heutige Kaufkraft umgerechnet.':'Ohne Inflation gerechnet.'} Prognosen sagen nichts über die Zukunft.`;
@@ -1361,12 +1362,6 @@ function hmFill(d){if(!d.open||d.dataset.f)return;d.dataset.f=1;const h=((S.meta
 function dOrd(){const A=holdings().filter(x=>x.q>0.0001),O=opt.hord||[],r=O.map(t=>A.find(x=>x.t==t)).filter(Boolean);return r.concat(A.filter(x=>!O.includes(x.t)))}
 function dNav(d){if(tab!='det'||($('#dg')&&$('#dg').open))return;const H=dOrd(),i=H.findIndex(x=>x.t==opt.det);if(i<0||H.length<2)return;opt.det=H[(i+d+H.length)%H.length].t;render();window.scrollTo(0,0)}
 document.addEventListener('keydown',e=>{if(e.altKey||e.ctrlKey||e.metaKey||e.shiftKey)return;const el=e.target,tg=(el&&el.tagName||'').toLowerCase();if(/input|textarea|select/.test(tg)||(el&&el.isContentEditable))return;if(e.key=='ArrowLeft'){dNav(-1);e.preventDefault()}else if(e.key=='ArrowRight'){dNav(1);e.preventDefault()}});
-(()=>{let sy=0,sx=0,on=false,dy=0,busy=false,el=null;const bar=()=>el||(el=(()=>{const d=document.createElement('div');d.style.cssText='position:fixed;left:50%;top:calc(env(safe-area-inset-top,0px) + 10px);transform:translate(-50%,-70px);z-index:60;background:var(--card,#1b1d22);color:var(--tx,#e8e8ea);border:1px solid var(--ln,#333);border-radius:20px;padding:9px 16px;font-size:14px;box-shadow:0 6px 20px rgba(0,0,0,.4);pointer-events:none;transition:transform .2s;white-space:nowrap';document.body.appendChild(d);return d})());
-const show=t=>{const b=bar();b.textContent=t;b.style.transform='translate(-50%,0)'},hide=()=>{if(el)el.style.transform='translate(-50%,-70px)'};
-document.addEventListener('touchstart',e=>{const t=e.touches[0];on=false;dy=0;if(busy||tab!='dash'||e.touches.length!=1||(window.scrollY||0)>0||document.getElementById('wsh')||(e.target.closest&&e.target.closest('canvas,.fb,#dg,dialog,.stabs,.wfs')))return;const h=innerHeight;if(t.clientY<h*.15||t.clientY>h*.9)return;sy=t.clientY;sx=t.clientX;on=true},{passive:true});
-document.addEventListener('touchmove',e=>{if(!on)return;const t=e.touches[0];dy=t.clientY-sy;if(Math.abs(t.clientX-sx)>Math.abs(dy)||(window.scrollY||0)>0){on=false;hide();return}if(dy>25)show(dy>=90?'Loslassen zum Aktualisieren':'Ziehen, um Kurse zu aktualisieren');else hide()},{passive:true});
-document.addEventListener('touchend',async()=>{if(!on)return;on=false;if(dy>=90&&!busy){busy=true;show('Kurse werden abgerufen …');try{await fetchQ(1)}catch(e){}busy=false;show('Aktualisiert');setTimeout(hide,900)}else hide()},{passive:true});
-document.addEventListener('touchcancel',()=>{on=false;hide()},{passive:true})})();
 let SW=null;document.addEventListener('touchstart',e=>{SW=null;if(tab!='det'||e.touches.length!=1)return;let n=e.target;while(n&&n!==document.body){if(n.matches&&n.matches('canvas,input,select,textarea,table'))return;if(n.scrollWidth>n.clientWidth+2&&/auto|scroll/.test(getComputedStyle(n).overflowX))return;n=n.parentNode}SW={x:e.touches[0].clientX,y:e.touches[0].clientY,t:Date.now()}},{passive:true});
 document.addEventListener('touchend',e=>{if(!SW)return;const c=e.changedTouches[0],dx=c.clientX-SW.x,dy=c.clientY-SW.y;const ok=Date.now()-SW.t<700&&Math.abs(dx)>70&&Math.abs(dx)>Math.abs(dy)*1.8;SW=null;if(ok)dNav(dx<0?1:-1)},{passive:true});
 function det(){const t=opt.det,H0=dOrd(),h=holdings().find(x=>x.t==t);if(!h){tab='hold';return render()}
