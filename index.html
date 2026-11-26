@@ -1229,12 +1229,12 @@ function dsWSet(i,el){FAC[i].w=+el.value;el.nextElementSibling.textContent=el.va
 function dsWReset(){FAC.forEach((f,i)=>f.w=FW0[i]);dxW(pk('dsw'),FAC.map(f=>f.w));dsi(1);dsW()}
 
 /* --- Sparplan --- */
-let SP=null,SPC=null;const SPD={sel:'DEPOT',r:200,y:2015,d:0,re:1,tx:1};
+let SP=null,SPC=null;const SPD={sel:'DEPOT',r:200,y:2025,d:0,re:1,tx:1,g:5,k:0};
 const spHas=t=>{const c=DSM[t];return !!(c&&c.d&&c.d.ok)};
 async function spFetch(){const u=gw();if(!u||DXB.m)return;const L=holdings().filter(h=>h.q>0.0001&&dxIsin(h.t)&&dxStale(DSM[h.t]));if(!L.length)return;DXB.m=L.length;
  await dxPool(L,4,async h=>{let d;try{const s=dxSym(h.t),r=await fetch(`${u}/monthly?isin=${encodeURIComponent(dxIsin(h.t))}${s?'&sym='+encodeURIComponent(s):''}`);d=await r.json()}catch(e){d={ok:false,error:'Worker nicht erreichbar'}}DSM[h.t]={ts:Date.now(),d};DXB.m--;if(dxOn('spp'))spDraw()});
  DXB.m=0;dxW('dsm',DSM);if(dxOn('spp'))spDraw()}
-function spp(){dxSeen('spp');scrollTo(0,0);SP=Object.assign({},SPD,dxJ(pk('spq'),{}));const now=new Date().getFullYear();SP.y=Math.min(now-1,Math.max(2010,+SP.y||2015));
+function spp(){dxSeen('spp');scrollTo(0,0);SP=Object.assign({},SPD,dxJ(pk('spq'),{}));const now=new Date().getFullYear();SP.y=Math.min(2099,Math.max(2025,+SP.y||2025));SP.k=Math.max(0,+SP.k||0);SP.g=Math.min(10,Math.max(0,isFinite(+SP.g)?+SP.g:5));
  const H=holdings().filter(h=>h.q>0.0001).sort((a,b)=>mvOf(b)-mvOf(a));if(SP.sel!='DEPOT'&&!H.some(h=>h.t==SP.sel))SP.sel='DEPOT';
  if(SPC){try{SPC.destroy()}catch(e){}SPC=null}
  if(!gw()){$('#m').innerHTML=dxTabs()+'<div class="card">Für die Simulation brauchst du die Worker-Adresse (Einstellungen).</div>';return}
@@ -1243,43 +1243,50 @@ function spp(){dxSeen('spp');scrollTo(0,0);SP=Object.assign({},SPD,dxJ(pk('spq')
  <div class="dxcl"><span><i style="background:var(--ac)"></i><span id="spL1"></span></span><span><i style="background:var(--mu)"></i><span id="spL2"></span></span><span><i style="background:#3a3d46;height:8px"></i>Eingezahlt</span></div></div>
  <div class="k4" id="spK" style="margin-bottom:12px"></div>
  <div class="card"><label class="dxr"><span>Sparrate<b id="spRv"></b></span><input type="range" id="spR" min="25" max="1000" step="25" value="${SP.r}" aria-label="Sparrate"></label>
- <label class="dxr"><span>Start<b id="spSv"></b></span><input type="range" id="spS" min="2010" max="${now-1}" value="${SP.y}" aria-label="Startjahr"></label>
+ <div class="dxr"><span><label for="spKn">Startkapital (schon eingezahlt)</label><b><input type="number" id="spKn" min="0" step="500" inputmode="numeric" value="${SP.k}" style="width:110px;text-align:right;background:rgba(255,255,255,.05);border:1px solid var(--ln);border-radius:8px;color:inherit;font:inherit;padding:4px 8px"> €</b></span><input type="range" id="spK" min="0" max="100000" step="500" value="${Math.min(SP.k,100000)}" aria-label="Startkapital"><button class="dxb" style="margin-top:8px;min-height:40px;font-weight:500" onclick="spTake()">Aktuellen Depotwert übernehmen</button></div>
+ <label class="dxr"><span>Start<b id="spSv"></b></span><input type="range" id="spS" min="2025" max="2099" value="${SP.y}" aria-label="Startjahr"></label>
+ <label class="dxr"><span>Kursplus p. a. (Prognose ab heute)<b id="spGv"></b></span><input type="range" id="spGr" min="0" max="10" step="0.5" value="${SP.g}" aria-label="Kursplus pro Jahr"></label>
  <label class="dxr"><span>Jährliche Erhöhung<b id="spDv"></b></span><input type="range" id="spD" min="0" max="10" value="${SP.d}" aria-label="Jährliche Erhöhung"></label>
  <label class="dxs"><span>Dividenden wieder anlegen<small>Ausschüttungen kaufen neue Anteile</small></span><input type="checkbox" id="spRe" ${SP.re?'checked':''}></label>
  <label class="dxs"><span>Steuer abziehen<small>26,375 % nach 1.000 € Freibetrag pro Jahr</small></span><input type="checkbox" id="spTx" ${SP.tx?'checked':''}></label></div>
  <div class="card"><details class="dxd"><summary>Jahresübersicht</summary><div id="spY" style="margin-top:8px"></div></details></div>
  <p class="dxn" id="spN"></p>`;
  $('#spC').onclick=e=>{const b=e.target.closest('[data-t]');if(!b)return;SP.sel=b.dataset.t;spSv();document.querySelectorAll('#spC .bmc').forEach(x=>x.classList.toggle('on',x===b));spDraw()};
- const rd=()=>{SP.r=+$('#spR').value;SP.y=+$('#spS').value;SP.d=+$('#spD').value;SP.re=$('#spRe').checked?1:0;SP.tx=$('#spTx').checked?1:0;spSv();spDraw()};
- ['spR','spS','spD','spRe','spTx'].forEach(i=>$('#'+i).addEventListener('input',rd));
+ const rd=()=>{SP.r=+$('#spR').value;SP.k=Math.max(0,+$('#spKn').value||0);SP.y=+$('#spS').value;SP.d=+$('#spD').value;SP.g=+$('#spGr').value;SP.re=$('#spRe').checked?1:0;SP.tx=$('#spTx').checked?1:0;spSv();spDraw()};
+ ['spR','spS','spD','spGr','spRe','spTx','spKn'].forEach(i=>$('#'+i).addEventListener('input',rd));$('#spK').addEventListener('input',()=>{$('#spKn').value=$('#spK').value;rd()});$('#spKn').addEventListener('input',()=>{$('#spK').value=Math.min(100000,Math.max(0,+$('#spKn').value||0))});
  spDraw();spFetch()}
+function spTake(){const H=holdings().filter(h=>h.q>0.0001),L=SP.sel=='DEPOT'?H:H.filter(h=>h.t==SP.sel);$('#spKn').value=Math.round(L.reduce((s,h)=>s+mvOf(h),0));$('#spKn').dispatchEvent(new Event('input'))}
 function spSv(){dxW(pk('spq'),SP)}
-function spSim1(M,rate,y0,re,dyn,tax,fs,TL){const fx=M.fx||1,pm={},dm={};M.pts.forEach(p=>pm[p[0]]=p);M.divs.forEach(d=>{const k=d[0].slice(0,7);dm[k]=(dm[k]||0)+d[1]});
+function spSim1(M,rate,y0,re,dyn,tax,fs,TL,g,nowK,k0){let ini=k0||0;const fx=M.fx||1,pm={},dm={},pat={};M.pts.forEach(p=>pm[p[0]]=p);M.divs.forEach(d=>{const k=d[0].slice(0,7);dm[k]=(dm[k]||0)+d[1]});
+ const lr=M.pts[M.pts.length-1],ny=+nowK.slice(0,4),nm=+nowK.slice(5),nv=ny*12+nm;
+ Object.keys(dm).forEach(k=>{const mm=+k.slice(5),v=+k.slice(0,4)*12+mm;if(v>nv-12&&v<=nv)pat[mm]=(pat[mm]||0)+dm[k]});
  let sh=0,cash=0,paid=0,dv=0,free=1000*fs,l12=0,last=null;const val=[],pd=[],yr={};
- TL.forEach((k,i)=>{const y=+k.slice(0,4),m=+k.slice(5),p=pm[k];if(p)last=p;if(m==1)free=1000*fs;let r=0,d=0;
-  if(last){const op=(p?p[1]:last[2])*fx,cl=(p?p[2]:last[2])*fx;if(p){r=rate*Math.pow(1+dyn/100,y-y0);sh+=r/op;paid+=r}
-   if(dm[k]&&sh>0){d=sh*dm[k]*fx;if(tax){const fr=Math.min(free,d);free-=fr;d-=(d-fr)*.26375}dv+=d;if(i>=TL.length-12)l12+=d;if(re)sh+=d/cl;else cash+=d}
+ TL.forEach((k,i)=>{const y=+k.slice(0,4),m=+k.slice(5),fut=k>nowK,p=fut?null:pm[k];if(p)last=p;if(m==1)free=1000*fs;let r=0,d=0,op=null,cl=null,dd=0;
+  if(fut){const f=Math.pow(1+g/100,((y-ny)*12+m-nm)/12);op=cl=lr[2]*f*fx;dd=(pat[m]||0)*f}
+  else if(last){op=(p?p[1]:last[2])*fx;cl=(p?p[2]:last[2])*fx;dd=dm[k]||0}
+  if(op!=null){if(fut||p){r=rate*Math.pow(1+dyn/100,y-y0)+ini;ini=0;sh+=r/op;paid+=r}
+   if(dd&&sh>0){d=sh*dd*fx;if(tax){const fr=Math.min(free,d);free-=fr;d-=(d-fr)*.26375}dv+=d;if(i>=TL.length-12)l12+=d;if(re)sh+=d/cl;else cash+=d}
    val.push(sh*cl+cash)}else val.push(0);
   pd.push(paid);const Y=yr[y]||(yr[y]={p:0,d:0,v:0});Y.p+=r;Y.d+=d;Y.v=val[i]});
  return{val,pd,paid,dv,l12,yr}}
-function spSim(items,rate,y0,re,dyn,tax,TL){const R=items.map(([M,w])=>spSim1(M,rate*w,y0,re,dyn,tax,w,TL)),n=TL.length,add=k=>Array.from({length:n},(_,i)=>R.reduce((s,r)=>s+r[k][i],0)),yr={};
+function spSim(items,rate,y0,re,dyn,tax,TL,g,nowK,k0){const R=items.map(([M,w])=>spSim1(M,rate*w,y0,re,dyn,tax,w,TL,g,nowK,(k0||0)*w)),n=TL.length,add=k=>Array.from({length:n},(_,i)=>R.reduce((s,r)=>s+r[k][i],0)),yr={};
  R.forEach(r=>{for(const y in r.yr){const Y=yr[y]||(yr[y]={p:0,d:0,v:0});Y.p+=r.yr[y].p;Y.d+=r.yr[y].d;Y.v+=r.yr[y].v}});
  return{val:add('val'),pd:add('pd'),paid:R.reduce((s,r)=>s+r.paid,0),dv:R.reduce((s,r)=>s+r.dv,0),l12:R.reduce((s,r)=>s+r.l12,0),yr}}
 function spDraw(){if(!dxOn('spp')||!$('#spR'))return;const r=SP.r,y0=SP.y,dy=SP.d,re=!!SP.re,tx=!!SP.tx;
- $('#spRv').textContent=DXE(r,0)+' / Monat';$('#spSv').textContent='Januar '+y0;$('#spDv').textContent=dy?'+'+DXP(dy,0)+' pro Jahr':'keine';
+ $('#spRv').textContent=DXE(r,0)+' / Monat';$('#spSv').textContent='Januar '+y0;$('#spGv').textContent=DXP(SP.g,1)+' pro Jahr';$('#spDv').textContent=dy?'+'+DXP(dy,0)+' pro Jahr':'keine';
  const H=holdings().filter(h=>h.q>0.0001),pick=SP.sel=='DEPOT'?H:H.filter(h=>h.t==SP.sel),have=pick.filter(h=>spHas(h.t)),tot=have.reduce((s,h)=>s+mvOf(h),0)||1;
  const items=have.map(h=>[DSM[h.t].d,SP.sel=='DEPOT'?mvOf(h)/tot:1]),nm=SP.sel=='DEPOT'?'deinem Depot (heutige Gewichtung)':(pick[0]?(pick[0].name||nameOf(pick[0].t)||pick[0].t):'');
  const pend=pick.length-have.length,noN=$('#spN');
  if(!items.length){$('#spT').textContent=DXB.m?'Kursdaten werden geladen …':'Keine Kursdaten verfügbar';$('#spV').textContent='–';$('#spG').innerHTML='';$('#spK').innerHTML='';$('#spY').innerHTML='';noN.textContent=DXB.m?'':'Der Worker hat für diese Auswahl keine Monatskurse geliefert.';if(SPC){SPC.destroy();SPC=null}return}
- const nowK=new Date().toISOString().slice(0,7),TL=[];for(let y=y0,m=1;(y+'-'+String(m).padStart(2,'0'))<=nowK;m++){if(m>12){m=0;y++;continue}TL.push(y+'-'+String(m).padStart(2,'0'))}
- const A=spSim(items,r,y0,re,dy,tx,TL),B=spSim(items,r,y0,!re,dy,tx,TL),end=A.val[A.val.length-1],g=end-A.paid,diff=end-B.val[B.val.length-1];
- $('#spT').textContent=`Wert heute · ${DXE(r,0)} im Monat seit ${y0} in ${nm}`;$('#spV').textContent=DXE(end);
- $('#spG').innerHTML=`<span class="pl ${g>=0?'up':'dn'}">${g>=0?'↑':'↓'} ${DXE(Math.abs(g))} · ${DXP(A.paid?g/A.paid*100:0)}</span>`;
- $('#spK').innerHTML=[['Eingezahlt',DXE(A.paid,0),`${TL.length} Monate`],['Dividenden gesamt',DXE(A.dv,0),tx?'netto nach Steuer':'brutto'],['Dividende pro Monat',DXE(A.l12/12),'Schnitt der letzten 12 Monate'],[re?'Plus durch Wiederanlage':'Verzicht ohne Wiederanlage',(diff>=0?'+':'')+DXE(diff,0),re?'gegenüber Auszahlen':'gegenüber Wiederanlage']].map(([a,b,c])=>`<div class="kpi"><small>${a}</small><b>${b}</b><span>${c}</span></div>`).join('');
+ const nowK=new Date().toISOString().slice(0,7),TL=[];for(let y=y0;y<=2100;y++)for(let m=1;m<=12;m++)TL.push(y+'-'+String(m).padStart(2,'0'));
+ const A=spSim(items,r,y0,re,dy,tx,TL,SP.g,nowK,SP.k),B=spSim(items,r,y0,!re,dy,tx,TL,SP.g,nowK,SP.k),end=A.val[A.val.length-1],g=end-A.paid,diff=end-B.val[B.val.length-1];
+ const hi=TL.indexOf(nowK);$('#spT').textContent=`Prognose Ende 2100 · ${DXE(r,0)} im Monat${SP.k>0?' plus '+DXE(SP.k,0)+' Startkapital':''} ab ${y0} in ${nm}`;$('#spV').textContent=DXE(end);
+ $('#spG').innerHTML=`<span class="pl ${g>=0?'up':'dn'}">${g>=0?'↑':'↓'} ${DXE(Math.abs(g))} · ${DXP(A.paid?g/A.paid*100:0)}</span>`+(hi>=0?`<div class="dxn" style="text-align:center">Heute: ${DXE(A.val[hi],0)} bei ${DXE(A.pd[hi],0)} eingezahlt</div>`:'');
+ $('#spK').innerHTML=[['Eingezahlt',DXE(A.paid,0),`${TL.length} Monate`],['Dividenden gesamt',DXE(A.dv,0),tx?'netto nach Steuer':'brutto'],['Dividende pro Monat',DXE(A.l12/12),'Schnitt der letzten 12 Monate (2100)'],[re?'Plus durch Wiederanlage':'Verzicht ohne Wiederanlage',(diff>=0?'+':'')+DXE(diff,0),re?'gegenüber Auszahlen':'gegenüber Wiederanlage']].map(([a,b,c])=>`<div class="kpi"><small>${a}</small><b>${b}</b><span>${c}</span></div>`).join('');
  $('#spL1').textContent=re?'Mit Wiederanlage':'Ohne Wiederanlage';$('#spL2').textContent=re?'Ohne Wiederanlage':'Mit Wiederanlage';
- $('#spY').innerHTML=`<div class="dxy"><span>Jahr</span><span>Eingezahlt</span><span>Dividenden</span><span>Wert Ende</span></div>`+Object.entries(A.yr).reverse().map(([y,v])=>`<div class="dxy"><span>${y}</span><span>${DXE(v.p,0)}</span><span style="color:var(--sg)">${DXE(v.d,0)}</span><span>${DXE(v.v,0)}</span></div>`).join('');
+ $('#spY').innerHTML=`<div class="dxy"><span>Jahr</span><span>Eingezahlt</span><span>Dividenden</span><span>Wert Ende</span></div>`+Object.entries(A.yr).reverse().map(([y,v])=>`<div class="dxy"><span>${y}${+y>+nowK.slice(0,4)?'*':''}</span><span>${DXE(v.p,0)}</span><span style="color:var(--sg)">${DXE(v.d,0)}</span><span>${DXE(v.v,0)}</span></div>`).join('');
  const first=Math.min(...items.map(([M])=>+M.pts[0][0].slice(0,4)));
- noN.textContent=(pend?`${pend} von ${pick.length} Titeln ${DXB.m?'werden noch geladen':'ohne Kursdaten, nicht enthalten'}. `:'')+(first>y0?`Für einen Teil der Titel beginnt die Historie erst ${first}; dort startet der Kauf später. `:'')+'Simulation mit der echten Kurs- und Dividendenhistorie von Yahoo, Fremdwährung zum heutigen Kurs. Vergangene Renditen sagen nichts über die Zukunft.';
+ noN.textContent=(pend?`${pend} von ${pick.length} Titeln ${DXB.m?'werden noch geladen':'ohne Kursdaten, nicht enthalten'}. `:'')+(first>y0?`Für einen Teil der Titel beginnt die Historie erst ${first}; dort startet der Kauf später. `:'')+`Bis heute echte Kurs- und Dividendenhistorie von Yahoo (Fremdwährung zum heutigen Kurs). * Ab heute Prognose: Kurse steigen mit ${DXN(SP.g,1)} % pro Jahr, die Dividendenrendite der letzten 12 Monate bleibt gleich, alles ohne Inflation. Vergangene Renditen und Prognosen sagen nichts über die Zukunft.`;
  const lab=TL.map(k=>['Jan','Feb','Mär','Apr','Mai','Jun','Jul','Aug','Sep','Okt','Nov','Dez'][+k.slice(5)-1]+' '+k.slice(0,4)),ctx=$('#spCv').getContext('2d'),gr=ctx.createLinearGradient(0,0,0,260);gr.addColorStop(0,'rgba(68,147,154,.35)');gr.addColorStop(1,'rgba(68,147,154,0)');
  const ds=[{label:re?'Mit Wiederanlage':'Ohne Wiederanlage',data:A.val,borderColor:'#44939a',backgroundColor:gr,fill:true,borderWidth:2.4,order:1},{label:re?'Ohne Wiederanlage':'Mit Wiederanlage',data:B.val,borderColor:'#a0a2a8',borderDash:[5,4],borderWidth:1.5,fill:false,order:2},{label:'Eingezahlt',data:A.pd,borderColor:'transparent',backgroundColor:'rgba(58,61,70,.55)',fill:true,order:3}];
  if(SPC){SPC.data.labels=lab;SPC.data.datasets.forEach((x,i)=>Object.assign(x,ds[i]));SPC.update('none');return}
