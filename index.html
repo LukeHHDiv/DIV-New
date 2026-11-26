@@ -125,7 +125,7 @@ body.priv .blr,body.priv #wv,body.priv #wi{filter:blur(7px);-webkit-filter:blur(
 .dxg{position:relative;max-width:420px;margin:0 auto}.dxg svg{display:block;width:100%;height:auto}.dxc{position:absolute;left:0;right:0;bottom:2px;text-align:center}.dxc small{color:var(--mu);font-size:13px}.dxc b{display:block;font-size:36px;font-weight:600;line-height:1.1;margin:2px 0 6px}
 .dxl{display:flex;flex-wrap:wrap;gap:6px 14px;justify-content:center;margin-top:10px;font-size:13px;color:var(--mu)}.dxl i{display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:6px;vertical-align:-1px}
 .dxt{height:6px;background:rgba(255,255,255,.1);border-radius:3px;margin-top:6px;overflow:hidden}.dxt i{display:block;height:100%;border-radius:3px}
-.dxn{color:var(--mu);font-size:13px;margin:8px 0 0}.dxh{display:flex;justify-content:space-between;align-items:center;margin-bottom:6px}.dxh b{font-size:19px;font-weight:500}
+.dxn{color:var(--mu);font-size:13px;margin:8px 0 0}#spT{display:block;min-height:40px}#spG{display:block;min-height:62px}#spK .kpi{min-height:104px}#spN{min-height:96px}.dxg+.dxn{min-height:60px}.dxh{display:flex;justify-content:space-between;align-items:center;margin-bottom:6px}.dxh b{font-size:19px;font-weight:500}
 .dxgear{background:none;border:0;padding:8px;cursor:pointer;color:var(--mu);min-width:44px;min-height:44px}.dxgear svg{width:24px;height:24px;fill:none;stroke:currentColor;stroke-width:1.7}
 .dxchs{display:flex;gap:8px;overflow-x:auto;scrollbar-width:none;margin-bottom:12px;padding-bottom:2px}.dxchs::-webkit-scrollbar{display:none}.dxchs .bmc{flex:none}
 .dxbig{text-align:center;padding:6px 0 4px}.dxbig small{color:var(--mu);font-size:13px}.dxbig b{display:block;font-size:clamp(32px,9vw,40px);font-weight:600;line-height:1.15;margin:2px 0 8px;white-space:nowrap}
@@ -725,7 +725,8 @@ function newsCard(){if(!gw())return `<div class="card"><div class="mu">Für News
  return `<div class="card"><div class="nfl"><button class="${f<0?'on':''}" onclick="opt.nf=-1;render()">Alle</button>${(NW?NW.qs:[]).map((t,i)=>`<button class="${f===i?'on':''}" onclick="opt.nf=${i};render()">${esc(nameOf(t)||t)}</button>`).join('')}</div>
  ${its.length?its.slice(0,40).map(x=>`<a class="nws" href="${esc(x.l)}" target="_blank" rel="noopener"><b>${esc(x.t)}</b><span>${esc(x.s||'')}${x.s?' · ':''}${nwAgo(x.d)}${f<0&&NW.qs[x.i]?' · '+esc(nameOf(NW.qs[x.i])||NW.qs[x.i]):''}</span></a>`).join(''):`<div class="mu">${nwBusy||!NW?'Lade Nachrichten …':'Keine Nachrichten gefunden.'}${NW&&NW.err?' ('+esc(NW.err)+')':''}</div>`}
  <div style="text-align:center;margin-top:10px"><a class="more" onclick="nwLoad(true)">Aktualisieren</a>${NW?`<div class="mu" style="font-size:12px">Stand ${nwAgo(NW.ts)} · Quelle: Google News (u. a. Handelsblatt, Focus, finanzen.net)</div>`:''}</div></div>`}
-function dash(){if(opt.dtab=='dsi')return dsi();if(opt.dtab=='spp')return spp();seedC();const irT0=(()=>{try{return portIrr(holdings().filter(h=>h.q>0.0001))}catch(e){return null}})();const now=new Date(),H=holdings().filter(h=>h.q>0.0001).sort((a,b)=>b.cost-a.cost),fc=forecast(),per=opt.per||'max',dt=opt.dtab=='w'?'w':'d',st=perStart(),divs=dvTx(),
+function dash(){const x=opt.dtab;if(x=='dsi'||x=='spp'){opt.dtab='d';try{dash1()}finally{opt.dtab=x}return x=='dsi'?dsi():spp()}return dash1()}
+function dash1(){seedC();const irT0=(()=>{try{return portIrr(holdings().filter(h=>h.q>0.0001))}catch(e){return null}})();const now=new Date(),H=holdings().filter(h=>h.q>0.0001).sort((a,b)=>b.cost-a.cost),fc=forecast(),per=opt.per||'max',dt=opt.dtab=='w'?'w':'d',st=perStart(),divs=dvTx(),
  cost=H.reduce((s,h)=>s+h.cost,0),hasQ=H.some(h=>qP(h.t)>0),mvT=H.reduce((s,h)=>s+mvOf(h),0),dP=divs.reduce((s,t)=>s+t.amount,0),dRaw=divs.reduce((s,t)=>s+(t.raw??t.amount),0),rP=realized().reduce((s,e)=>s+e.g,0),f12=fc.reduce((s,t)=>s+t.a,0),dayChg=H.reduce((s,h)=>{const q=QT[h.t]||{};return s+(q.p>0&&q.pc>0?h.q*(q.p-q.pc):0)},0),unr=hasQ?mvT-cost:0,pc2=perCalc(per,H,st),pr=unr,res=(pr||0),base=cost,
  PF=(window.PFD={per:'max',pr,dP:dRaw,rP,res,unr,dayChg,base,hasQ,hist:!!pc2,miss:pc2?pc2.miss:0}),
  etf=H.filter(h=>(S.meta[h.t]||{}).type=='ETF').length,cur=addM(now,0),first=S.tx.reduce((m,t)=>t.date<m?t.date:m,'9999-99-99').slice(0,7),
@@ -1162,7 +1163,8 @@ function ovl(){const H=holdings().filter(h=>h.q>0.0001),V=H.reduce((s,h)=>s+mvOf
  h+=`<div class="card"><b>Größte Gesamtanteile</b><div class="mu" style="font-size:12px;margin:4px 0 8px">Alle Quellen zusammen (Direktkauf plus ETF-Inhalte). Ab 3 % erhöht, ab 5 % hoch.</div>${all.slice(0,12).map((o,i)=>{const p=o.tot/V*100;return `<div class="row" style="margin-top:${i?12:0}px"><span>${esc(o.name)} ${fl(p)}</span><span>${PCT(p)}</span></div><div class="trk"><i style="width:${Math.min(100,p*4)}%;background:${PX(i)}"></i></div>`}).join('')}</div>`;
  $('#m').innerHTML=h}
 const dxOn=k=>tab==k||(tab=='dash'&&opt.dtab==k);
-const dxTabs=()=>tab!='dash'?atabs():`<div class="stabs"><button onclick="opt.dtab='d';render()">Dividenden</button><button onclick="opt.dtab='w';render()">Wertentwicklung</button><button class="${opt.dtab=='dsi'?'on':''}" onclick="opt.dtab='dsi';scrollTo(0,0);render()">Div-Sicherheit${neuB('dsi')}</button><button class="${opt.dtab=='spp'?'on':''}" onclick="opt.dtab='spp';scrollTo(0,0);render()">Sparplan${neuB('spp')}</button></div>`;
+const dxm={set html(h){const st=tab=='dash'?document.querySelector('#m .stabs'):null;if(!st){$('#m').innerHTML=h;return}[...st.children].forEach((b,i)=>b.classList.toggle('on',i==({d:0,w:1,dsi:2,spp:3})[opt.dtab]));while(st.nextSibling)st.nextSibling.remove();st.insertAdjacentHTML('afterend',h)}};
+const dxTabs=()=>tab!='dash'?atabs():'';
 /* ===== Div-Sicherheit + Sparplan ===== */
 const DXN=(v,d=2)=>(+v).toLocaleString('de-DE',{minimumFractionDigits:d,maximumFractionDigits:d}),DXE=(v,d=2)=>DXN(v,d)+' €',DXP=(v,d=1)=>DXN(v,d)+' %';
 const dxIni=n=>{const w=String(n||'?').replace(/[^A-Za-zÄÖÜäöü0-9 ]/g,'').trim().split(/\s+/).filter(Boolean);return w.length>1?(w[0][0]+w[1][0]).toUpperCase():(w[0]||'?').slice(0,2).toUpperCase()};
@@ -1194,8 +1196,8 @@ const DXGEAR='<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M
 function dsi(keep){if(!keep){dxSeen('dsi');dxLoadW();if(!document.getElementById('dxkeep'))scrollTo(0,0)}
  const R=dsRows(),S1=R.filter(r=>r.sc).map(r=>({...r,a:dxAmp(r.s)})).sort((a,b)=>b.div-a.div),X=R.filter(r=>!r.sc),E=holdings().filter(h=>h.q>0.0001&&isETF(h.t)),u=gw();
  let h=dxTabs();
- if(!u){$('#m').innerHTML=h+'<div class="card">Für die Kennzahlen brauchst du die Worker-Adresse (Einstellungen).</div>';return}
- if(!S1.length){$('#m').innerHTML=h+`<div class="card"><div class="mu">${DXB.f?'Kennzahlen werden geladen … '+DXB.f+' offen':'Noch keine Kennzahlen vorhanden.'}</div>${X.length&&!DXB.f?`<button class="dxb" onclick="dsReload()">Kennzahlen neu laden</button>`:''}</div>`;if(!keep)dsFetch();return}
+ if(!u){dxm.html=h+'<div class="card">Für die Kennzahlen brauchst du die Worker-Adresse (Einstellungen).</div>';return}
+ if(!S1.length){const ld=DXB.f?'Kennzahlen werden geladen … '+DXB.f+' offen':'Noch keine Kennzahlen vorhanden.';dxm.html=h+`<div class="card"><div class="dxg"><svg viewBox="0 0 300 160" aria-hidden="true"><path d="${dxArc(150,148,132,Math.PI,0)}" stroke="rgba(255,255,255,.08)" stroke-width="24" fill="none"/></svg><div class="dxc"><small>Dividenden-Sicherheit</small><b>–</b><span class="pl" style="color:var(--mu);border-color:var(--ln)">${DXB.f?'lädt':'keine Daten'}</span></div></div><p class="dxn" style="text-align:center;min-height:60px">${ld}</p><div class="dxl"><span><i style="background:#7fcfae"></i>sicher</span><span><i style="background:#e09f3a"></i>beobachten</span><span><i style="background:#cf6a4f"></i>gefährdet</span></div></div><div class="k4" style="margin-bottom:12px">${['Sicher','Beobachten','Gefährdet','Ø Ausschüttungsquote'].map(l=>`<div class="kpi"><small>${l}</small><b>–</b><span class="mu">&nbsp;</span></div>`).join('')}</div>${X.length&&!DXB.f?`<div class="card"><button class="dxb" style="margin-top:0" onclick="dsReload()">Kennzahlen neu laden</button></div>`:''}`;if(!keep)dsFetch();return}
  const D=S1.reduce((s,x)=>s+x.div,0)||1,ws=Math.round(S1.reduce((s,x)=>s+x.s*x.div,0)/D),wa=dxAmp(ws),sum=k=>S1.filter(x=>x.a.k==k).reduce((s,x)=>s+x.div,0);
  let a=Math.PI,g='';const gap=.025;S1.forEach(x=>{const sw=Math.PI*x.div/D;g+=`<path d="${dxArc(150,148,132,a-gap/2,a-sw+gap/2)}" stroke="${x.a.c}" stroke-width="24" fill="none"><title>${esc(x.nm)}: ${DXE(x.div)} / Jahr</title></path>`;a-=sw});
  const po=S1.filter(x=>x.p.payout!=null),pD=po.reduce((s,x)=>s+x.div,0);
@@ -1209,7 +1211,7 @@ function dsi(keep){if(!keep){dxSeen('dsi');dxLoadW();if(!document.getElementById
  if(X.length)h+=`<div class="card"><div class="dxh"><b>Ohne Score <span class="mu" style="font-size:15px">· ${X.length}</span></b></div>${X.map(x=>`<div class="wk dxe">${dxAv(x.nm,x.col)}<div class="wn"><b>${esc(x.nm)}</b><span style="font-size:13px">${x.ok?'Keine Dividende in den letzten 12 Monaten':esc(!dxIsin(x.h.t)?'Keine ISIN':DSF[x.h.t]?((x.d&&x.d.error)||'Keine Kennzahlen gefunden'):'Wird geladen …')}</span></div><div class="wr"><b>–</b></div></div>`).join('')}${miss.length&&!DXB.f?`<button class="dxb" onclick="dsReload()">Kennzahlen neu laden</button>`:''}</div>`;
  if(E.length)h+=`<div class="card"><div class="dxh"><b>ETFs <span class="mu" style="font-size:15px">· kein Score</span></b></div>${E.map(x=>{const nm=x.name||nameOf(x.t)||x.t;return`<div class="wk dxe">${dxAv(nm,tcol(x.t))}<div class="wn"><b>${esc(nm)}</b><span style="font-size:13px">${DXE(mvOf(x),0)} Wert</span></div><div class="wr"><b>–</b></div></div>`}).join('')}<p class="dxn">ETFs bündeln hunderte Firmen, eine einzelne Kürzung fällt kaum ins Gewicht. Deshalb bekommen sie keinen Score.</p></div>`;
  h+=`<p class="dxn">Daten: Ausschüttungsquote, Free Cashflow, Verschuldung und Dividendenhistorie von Yahoo über deinen Worker (12 Stunden zwischengespeichert)${DXB.f?' · lädt noch '+DXB.f:''}. Der Score wird in der App berechnet.</p>`;
- const y=window.scrollY;$('#m').innerHTML=h;if(keep)scrollTo(0,y);if(!keep)dsFetch()}
+ const y=window.scrollY;dxm.html=h;if(keep)scrollTo(0,y);if(!keep)dsFetch()}
 function dsReload(){Object.keys(DSF).forEach(t=>{if(!DSF[t].d||!DSF[t].d.ok)delete DSF[t]});dxW('dsf',DSF);dsi();}
 function dsDet(t){const x=dsRows().find(r=>r.h.t==t);if(!x||!x.ok)return;const s=x.s,a=dxAmp(s),R=40,C=2*Math.PI*R,d=x.d;
  dxSheet(`<div style="display:flex;align-items:center;gap:12px;margin-bottom:14px">${dxAv(x.nm,x.col)}<div class="wn"><b style="font-size:19px">${esc(x.nm)}</b><span>${esc(d.sym||t)}</span></div></div>
@@ -1229,71 +1231,54 @@ function dsWSet(i,el){FAC[i].w=+el.value;el.nextElementSibling.textContent=el.va
 function dsWReset(){FAC.forEach((f,i)=>f.w=FW0[i]);dxW(pk('dsw'),FAC.map(f=>f.w));dsi(1);dsW()}
 
 /* --- Sparplan --- */
-let SP=null,SPC=null;const SPD={sel:'DEPOT',r:200,y:2025,d:0,re:1,tx:1,g:5,k:0};
-const spHas=t=>{const c=DSM[t];return !!(c&&c.d&&c.d.ok)};
-async function spFetch(){const u=gw();if(!u||DXB.m)return;const L=holdings().filter(h=>h.q>0.0001&&dxIsin(h.t)&&dxStale(DSM[h.t]));if(!L.length)return;DXB.m=L.length;
- await dxPool(L,4,async h=>{let d;try{const s=dxSym(h.t),r=await fetch(`${u}/monthly?isin=${encodeURIComponent(dxIsin(h.t))}${s?'&sym='+encodeURIComponent(s):''}`);d=await r.json()}catch(e){d={ok:false,error:'Worker nicht erreichbar'}}DSM[h.t]={ts:Date.now(),d};DXB.m--;if(dxOn('spp'))spDraw()});
- DXB.m=0;dxW('dsm',DSM);if(dxOn('spp'))spDraw()}
-function spp(){dxSeen('spp');scrollTo(0,0);SP=Object.assign({},SPD,dxJ(pk('spq'),{}));const now=new Date().getFullYear();SP.y=Math.min(2099,Math.max(2025,+SP.y||2025));SP.k=Math.max(0,+SP.k||0);SP.g=Math.min(10,Math.max(0,isFinite(+SP.g)?+SP.g:5));
+let SP=null,SPC=null;const SPD={sel:'DEPOT',n:20,r:200,d:0,g:5,i:2,re:1,tx:1};
+const spClamp=(v,a,b,d)=>isFinite(+v)?Math.min(b,Math.max(a,+v)):d;
+function spBase(){const H=holdings().filter(h=>h.q>0.0001),L=SP.sel=='DEPOT'?H:H.filter(h=>h.t==SP.sel),all=H.reduce((s,h)=>s+mvOf(h),0)||1,v=L.reduce((s,h)=>s+mvOf(h),0),cost=L.reduce((s,h)=>s+h.cost,0),ts=new Set(L.map(h=>h.t)),div=forecast(12).filter(x=>ts.has(x.t)).reduce((s,x)=>s+x.a,0);
+ return{v,cost,y:v>0?div/v:0,fs:v/all,nm:SP.sel=='DEPOT'?'deinem Depot':(L[0]?(L[0].name||nameOf(L[0].t)||L[0].t):'')}}
+function spSim(b,n,rate,dyn,re,tax,g,inf){let V=b.v,cash=0,free=1000*b.fs,dv=0,pR=b.cost,l12=0,yd=0;const gm=Math.pow(1+g/100,1/12),N=n*12,now=new Date(),m0=now.getMonth(),y0=now.getFullYear(),val=[V],pd=[pR],yr=[];
+ for(let t=1;t<=N;t++){const cm=(m0+t)%12;if(cm==0)free=1000*b.fs;const r=rate*Math.pow(1+dyn/100,Math.floor((t-1)/12)),df=Math.pow(1+inf/100,-t/12);V=(V+r)*gm;pR+=r*df;
+  let d=V*b.y/12;if(tax){const fr=Math.min(free,d);free-=fr;d-=(d-fr)*.26375}if(re)V+=d;else cash+=d;dv+=d*df;yd+=d*df;if(t>N-12)l12+=d*df;
+  val.push((V+cash)*df);pd.push(pR);if(cm==11||t==N){yr.push({y:y0+Math.floor((m0+t-1)/12),p:pR,d:yd,v:(V+cash)*df});yd=0}}
+ return{val,pd,dv,l12,yr,end:val[N],paid:pR}}
+function spp(){dxSeen('spp');scrollTo(0,0);SP=Object.assign({},SPD,dxJ(pk('spq'),{}));
  const H=holdings().filter(h=>h.q>0.0001).sort((a,b)=>mvOf(b)-mvOf(a));if(SP.sel!='DEPOT'&&!H.some(h=>h.t==SP.sel))SP.sel='DEPOT';
+ SP.n=[5,10,15,20,25,30].includes(+SP.n)?+SP.n:20;SP.r=spClamp(SP.r,0,2000,200);SP.d=spClamp(SP.d,0,10,0);SP.g=spClamp(SP.g,0,10,5);SP.i=spClamp(SP.i,0,5,2);
  if(SPC){try{SPC.destroy()}catch(e){}SPC=null}
- if(!gw()){$('#m').innerHTML=dxTabs()+'<div class="card">Für die Simulation brauchst du die Worker-Adresse (Einstellungen).</div>';return}
- $('#m').innerHTML=dxTabs()+`<div class="dxchs" id="spC"><button class="bmc ${SP.sel=='DEPOT'?'on':''}" data-t="DEPOT"><i style="background:#e8e8ea"></i>Ganzes Depot</button>${H.map(h=>`<button class="bmc ${SP.sel==h.t?'on':''}" data-t="${esc(h.t)}"><i style="background:${tcol(h.t)}"></i>${esc(h.name||nameOf(h.t)||h.t)}</button>`).join('')}</div>
+ dxm.html=dxTabs()+`<div class="dxchs" id="spC"><button class="bmc ${SP.sel=='DEPOT'?'on':''}" data-t="DEPOT"><i style="background:#e8e8ea"></i>Ganzes Depot</button>${H.map(h=>`<button class="bmc ${SP.sel==h.t?'on':''}" data-t="${esc(h.t)}"><i style="background:${tcol(h.t)}"></i>${esc(h.name||nameOf(h.t)||h.t)}</button>`).join('')}</div>
+ <div class="dxchs" id="spH">${[5,10,15,20,25,30].map(n=>`<button class="bmc ${SP.n==n?'on':''}" data-n="${n}">${n} Jahre</button>`).join('')}</div>
  <div class="card"><div class="dxbig"><small id="spT"></small><b id="spV">–</b><span id="spG"></span></div><div class="dxcv"><canvas id="spCv"></canvas></div>
- <div class="dxcl"><span><i style="background:var(--ac)"></i><span id="spL1"></span></span><span><i style="background:var(--mu)"></i><span id="spL2"></span></span><span><i style="background:#3a3d46;height:8px"></i>Eingezahlt</span></div></div>
+ <div class="dxcl"><span><i style="background:var(--ac)"></i><span id="spL1"></span></span><span><i style="background:var(--mu)"></i>Ohne Sparrate</span><span><i style="background:#3a3d46;height:8px"></i>Eingezahlt</span></div></div>
  <div class="k4" id="spK" style="margin-bottom:12px"></div>
- <div class="card"><label class="dxr"><span>Sparrate<b id="spRv"></b></span><input type="range" id="spR" min="25" max="1000" step="25" value="${SP.r}" aria-label="Sparrate"></label>
- <div class="dxr"><span><label for="spKn">Startkapital (schon eingezahlt)</label><b><input type="number" id="spKn" min="0" step="500" inputmode="numeric" value="${SP.k}" style="width:110px;text-align:right;background:rgba(255,255,255,.05);border:1px solid var(--ln);border-radius:8px;color:inherit;font:inherit;padding:4px 8px"> €</b></span><input type="range" id="spK" min="0" max="100000" step="500" value="${Math.min(SP.k,100000)}" aria-label="Startkapital"><button class="dxb" style="margin-top:8px;min-height:40px;font-weight:500" onclick="spTake()">Aktuellen Depotwert übernehmen</button></div>
- <label class="dxr"><span>Start<b id="spSv"></b></span><input type="range" id="spS" min="2025" max="2099" value="${SP.y}" aria-label="Startjahr"></label>
- <label class="dxr"><span>Kursplus p. a. (Prognose ab heute)<b id="spGv"></b></span><input type="range" id="spGr" min="0" max="10" step="0.5" value="${SP.g}" aria-label="Kursplus pro Jahr"></label>
- <label class="dxr"><span>Jährliche Erhöhung<b id="spDv"></b></span><input type="range" id="spD" min="0" max="10" value="${SP.d}" aria-label="Jährliche Erhöhung"></label>
+ <div class="card"><label class="dxr"><span>Monatliche Sparrate<b id="spRv"></b></span><input type="range" id="spR" min="0" max="2000" step="25" value="${SP.r}" aria-label="Sparrate"></label>
+ <label class="dxr"><span>Jährliche Erhöhung der Rate<b id="spDv"></b></span><input type="range" id="spD" min="0" max="10" value="${SP.d}" aria-label="Jährliche Erhöhung"></label>
+ <label class="dxr"><span>Kursplus p. a.<b id="spGv"></b></span><input type="range" id="spGr" min="0" max="10" step="0.5" value="${SP.g}" aria-label="Kursplus pro Jahr"></label>
+ <label class="dxr"><span>Inflation p. a.<b id="spIv"></b></span><input type="range" id="spIr" min="0" max="5" step="0.5" value="${SP.i}" aria-label="Inflation pro Jahr"></label>
  <label class="dxs"><span>Dividenden wieder anlegen<small>Ausschüttungen kaufen neue Anteile</small></span><input type="checkbox" id="spRe" ${SP.re?'checked':''}></label>
  <label class="dxs"><span>Steuer abziehen<small>26,375 % nach 1.000 € Freibetrag pro Jahr</small></span><input type="checkbox" id="spTx" ${SP.tx?'checked':''}></label></div>
  <div class="card"><details class="dxd"><summary>Jahresübersicht</summary><div id="spY" style="margin-top:8px"></div></details></div>
  <p class="dxn" id="spN"></p>`;
  $('#spC').onclick=e=>{const b=e.target.closest('[data-t]');if(!b)return;SP.sel=b.dataset.t;spSv();document.querySelectorAll('#spC .bmc').forEach(x=>x.classList.toggle('on',x===b));spDraw()};
- const rd=()=>{SP.r=+$('#spR').value;SP.k=Math.max(0,+$('#spKn').value||0);SP.y=+$('#spS').value;SP.d=+$('#spD').value;SP.g=+$('#spGr').value;SP.re=$('#spRe').checked?1:0;SP.tx=$('#spTx').checked?1:0;spSv();spDraw()};
- ['spR','spS','spD','spGr','spRe','spTx','spKn'].forEach(i=>$('#'+i).addEventListener('input',rd));$('#spK').addEventListener('input',()=>{$('#spKn').value=$('#spK').value;rd()});$('#spKn').addEventListener('input',()=>{$('#spK').value=Math.min(100000,Math.max(0,+$('#spKn').value||0))});
- spDraw();spFetch()}
-function spTake(){const H=holdings().filter(h=>h.q>0.0001),L=SP.sel=='DEPOT'?H:H.filter(h=>h.t==SP.sel);$('#spKn').value=Math.round(L.reduce((s,h)=>s+mvOf(h),0));$('#spKn').dispatchEvent(new Event('input'))}
+ $('#spH').onclick=e=>{const b=e.target.closest('[data-n]');if(!b)return;SP.n=+b.dataset.n;spSv();document.querySelectorAll('#spH .bmc').forEach(x=>x.classList.toggle('on',x===b));spDraw()};
+ const rd=()=>{SP.r=+$('#spR').value;SP.d=+$('#spD').value;SP.g=+$('#spGr').value;SP.i=+$('#spIr').value;SP.re=$('#spRe').checked?1:0;SP.tx=$('#spTx').checked?1:0;spSv();spDraw()};
+ ['spR','spD','spGr','spIr','spRe','spTx'].forEach(i=>$('#'+i).addEventListener('input',rd));
+ spDraw()}
 function spSv(){dxW(pk('spq'),SP)}
-function spSim1(M,rate,y0,re,dyn,tax,fs,TL,g,nowK,k0){let ini=k0||0;const fx=M.fx||1,pm={},dm={},pat={};M.pts.forEach(p=>pm[p[0]]=p);M.divs.forEach(d=>{const k=d[0].slice(0,7);dm[k]=(dm[k]||0)+d[1]});
- const lr=M.pts[M.pts.length-1],ny=+nowK.slice(0,4),nm=+nowK.slice(5),nv=ny*12+nm;
- Object.keys(dm).forEach(k=>{const mm=+k.slice(5),v=+k.slice(0,4)*12+mm;if(v>nv-12&&v<=nv)pat[mm]=(pat[mm]||0)+dm[k]});
- let sh=0,cash=0,paid=0,dv=0,free=1000*fs,l12=0,last=null;const val=[],pd=[],yr={};
- TL.forEach((k,i)=>{const y=+k.slice(0,4),m=+k.slice(5),fut=k>nowK,p=fut?null:pm[k];if(p)last=p;if(m==1)free=1000*fs;let r=0,d=0,op=null,cl=null,dd=0;
-  if(fut){const f=Math.pow(1+g/100,((y-ny)*12+m-nm)/12);op=cl=lr[2]*f*fx;dd=(pat[m]||0)*f}
-  else if(last){op=(p?p[1]:last[2])*fx;cl=(p?p[2]:last[2])*fx;dd=dm[k]||0}
-  if(op!=null){if(fut||p){r=rate*Math.pow(1+dyn/100,y-y0)+ini;ini=0;sh+=r/op;paid+=r}
-   if(dd&&sh>0){d=sh*dd*fx;if(tax){const fr=Math.min(free,d);free-=fr;d-=(d-fr)*.26375}dv+=d;if(i>=TL.length-12)l12+=d;if(re)sh+=d/cl;else cash+=d}
-   val.push(sh*cl+cash)}else val.push(0);
-  pd.push(paid);const Y=yr[y]||(yr[y]={p:0,d:0,v:0});Y.p+=r;Y.d+=d;Y.v=val[i]});
- return{val,pd,paid,dv,l12,yr}}
-function spSim(items,rate,y0,re,dyn,tax,TL,g,nowK,k0){const R=items.map(([M,w])=>spSim1(M,rate*w,y0,re,dyn,tax,w,TL,g,nowK,(k0||0)*w)),n=TL.length,add=k=>Array.from({length:n},(_,i)=>R.reduce((s,r)=>s+r[k][i],0)),yr={};
- R.forEach(r=>{for(const y in r.yr){const Y=yr[y]||(yr[y]={p:0,d:0,v:0});Y.p+=r.yr[y].p;Y.d+=r.yr[y].d;Y.v+=r.yr[y].v}});
- return{val:add('val'),pd:add('pd'),paid:R.reduce((s,r)=>s+r.paid,0),dv:R.reduce((s,r)=>s+r.dv,0),l12:R.reduce((s,r)=>s+r.l12,0),yr}}
-function spDraw(){if(!dxOn('spp')||!$('#spR'))return;const r=SP.r,y0=SP.y,dy=SP.d,re=!!SP.re,tx=!!SP.tx;
- $('#spRv').textContent=DXE(r,0)+' / Monat';$('#spSv').textContent='Januar '+y0;$('#spGv').textContent=DXP(SP.g,1)+' pro Jahr';$('#spDv').textContent=dy?'+'+DXP(dy,0)+' pro Jahr':'keine';
- const H=holdings().filter(h=>h.q>0.0001),pick=SP.sel=='DEPOT'?H:H.filter(h=>h.t==SP.sel),have=pick.filter(h=>spHas(h.t)),tot=have.reduce((s,h)=>s+mvOf(h),0)||1;
- const items=have.map(h=>[DSM[h.t].d,SP.sel=='DEPOT'?mvOf(h)/tot:1]),nm=SP.sel=='DEPOT'?'deinem Depot (heutige Gewichtung)':(pick[0]?(pick[0].name||nameOf(pick[0].t)||pick[0].t):'');
- const pend=pick.length-have.length,noN=$('#spN');
- if(!items.length){$('#spT').textContent=DXB.m?'Kursdaten werden geladen …':'Keine Kursdaten verfügbar';$('#spV').textContent='–';$('#spG').innerHTML='';$('#spK').innerHTML='';$('#spY').innerHTML='';noN.textContent=DXB.m?'':'Der Worker hat für diese Auswahl keine Monatskurse geliefert.';if(SPC){SPC.destroy();SPC=null}return}
- const nowK=new Date().toISOString().slice(0,7),TL=[];for(let y=y0;y<=2100;y++)for(let m=1;m<=12;m++)TL.push(y+'-'+String(m).padStart(2,'0'));
- const A=spSim(items,r,y0,re,dy,tx,TL,SP.g,nowK,SP.k),B=spSim(items,r,y0,!re,dy,tx,TL,SP.g,nowK,SP.k),end=A.val[A.val.length-1],g=end-A.paid,diff=end-B.val[B.val.length-1];
- const hi=TL.indexOf(nowK);$('#spT').textContent=`Prognose Ende 2100 · ${DXE(r,0)} im Monat${SP.k>0?' plus '+DXE(SP.k,0)+' Startkapital':''} ab ${y0} in ${nm}`;$('#spV').textContent=DXE(end);
- $('#spG').innerHTML=`<span class="pl ${g>=0?'up':'dn'}">${g>=0?'↑':'↓'} ${DXE(Math.abs(g))} · ${DXP(A.paid?g/A.paid*100:0)}</span>`+(hi>=0?`<div class="dxn" style="text-align:center">Heute: ${DXE(A.val[hi],0)} bei ${DXE(A.pd[hi],0)} eingezahlt</div>`:'');
- $('#spK').innerHTML=[['Eingezahlt',DXE(A.paid,0),`${TL.length} Monate`],['Dividenden gesamt',DXE(A.dv,0),tx?'netto nach Steuer':'brutto'],['Dividende pro Monat',DXE(A.l12/12),'Schnitt der letzten 12 Monate (2100)'],[re?'Plus durch Wiederanlage':'Verzicht ohne Wiederanlage',(diff>=0?'+':'')+DXE(diff,0),re?'gegenüber Auszahlen':'gegenüber Wiederanlage']].map(([a,b,c])=>`<div class="kpi"><small>${a}</small><b>${b}</b><span>${c}</span></div>`).join('');
- $('#spL1').textContent=re?'Mit Wiederanlage':'Ohne Wiederanlage';$('#spL2').textContent=re?'Ohne Wiederanlage':'Mit Wiederanlage';
- $('#spY').innerHTML=`<div class="dxy"><span>Jahr</span><span>Eingezahlt</span><span>Dividenden</span><span>Wert Ende</span></div>`+Object.entries(A.yr).reverse().map(([y,v])=>`<div class="dxy"><span>${y}${+y>+nowK.slice(0,4)?'*':''}</span><span>${DXE(v.p,0)}</span><span style="color:var(--sg)">${DXE(v.d,0)}</span><span>${DXE(v.v,0)}</span></div>`).join('');
- const first=Math.min(...items.map(([M])=>+M.pts[0][0].slice(0,4)));
- noN.textContent=(pend?`${pend} von ${pick.length} Titeln ${DXB.m?'werden noch geladen':'ohne Kursdaten, nicht enthalten'}. `:'')+(first>y0?`Für einen Teil der Titel beginnt die Historie erst ${first}; dort startet der Kauf später. `:'')+`Bis heute echte Kurs- und Dividendenhistorie von Yahoo (Fremdwährung zum heutigen Kurs). * Ab heute Prognose: Kurse steigen mit ${DXN(SP.g,1)} % pro Jahr, die Dividendenrendite der letzten 12 Monate bleibt gleich, alles ohne Inflation. Vergangene Renditen und Prognosen sagen nichts über die Zukunft.`;
- const lab=TL.map(k=>['Jan','Feb','Mär','Apr','Mai','Jun','Jul','Aug','Sep','Okt','Nov','Dez'][+k.slice(5)-1]+' '+k.slice(0,4)),ctx=$('#spCv').getContext('2d'),gr=ctx.createLinearGradient(0,0,0,260);gr.addColorStop(0,'rgba(68,147,154,.35)');gr.addColorStop(1,'rgba(68,147,154,0)');
- const ds=[{label:re?'Mit Wiederanlage':'Ohne Wiederanlage',data:A.val,borderColor:'#44939a',backgroundColor:gr,fill:true,borderWidth:2.4,order:1},{label:re?'Ohne Wiederanlage':'Mit Wiederanlage',data:B.val,borderColor:'#a0a2a8',borderDash:[5,4],borderWidth:1.5,fill:false,order:2},{label:'Eingezahlt',data:A.pd,borderColor:'transparent',backgroundColor:'rgba(58,61,70,.55)',fill:true,order:3}];
+function spDraw(){if(!dxOn('spp')||!$('#spR'))return;const r=SP.r,n=SP.n,re=!!SP.re,tx=!!SP.tx,b=spBase();
+ $('#spRv').textContent=DXE(r,0)+' / Monat';$('#spDv').textContent=SP.d?'+'+DXP(SP.d,0)+' pro Jahr':'keine';$('#spGv').textContent=DXP(SP.g,1);$('#spIv').textContent=DXP(SP.i,1);
+ const A=spSim(b,n,r,SP.d,re,tx,SP.g,SP.i),B=spSim(b,n,0,SP.d,re,tx,SP.g,SP.i),C=spSim(b,n,r,SP.d,!re,tx,SP.g,SP.i),g=A.end-A.paid,dRe=A.end-C.end,dRa=A.end-B.end;
+ $('#spT').textContent=`In ${n} Jahren${SP.i>0?' (heutige Kaufkraft)':''} · ${DXE(r,0)} im Monat in ${b.nm}`;$('#spV').textContent=DXE(A.end,0);
+ $('#spG').innerHTML=`<span class="pl ${g>=0?'up':'dn'}">${g>=0?'↑':'↓'} ${DXE(Math.abs(g),0)} · ${DXP(A.paid?g/A.paid*100:0)}</span><div class="dxn" style="text-align:center">Heute: ${DXE(b.v,0)} bei ${DXE(b.cost,0)} Einstand</div>`;
+ $('#spK').innerHTML=[['Eingezahlt gesamt',DXE(A.paid,0),`Einstand ${DXE(b.cost,0)} + Raten`],['Dividenden gesamt',DXE(A.dv,0),tx?'netto nach Steuer':'brutto'],['Dividende pro Monat',DXE(A.l12/12),`Schnitt im letzten Jahr (${n})`],[re?'Plus durch Wiederanlage':'Verzicht ohne Wiederanlage',(dRe>=0?'+':'')+DXE(dRe,0),re?'gegenüber Auszahlen':'gegenüber Wiederanlage'],['Plus durch Sparrate',(dRa>=0?'+':'')+DXE(dRa,0),'gegenüber keiner Rate'],['Rendite heute',DXP(b.y*100),'erwartete Dividenden, 12 Monate']].map(([a,c,d])=>`<div class="kpi"><small>${a}</small><b>${c}</b><span>${d}</span></div>`).join('');
+ $('#spL1').textContent=re?'Mit Wiederanlage':'Ohne Wiederanlage';
+ $('#spY').innerHTML=`<div class="dxy"><span>Jahr</span><span>Eingezahlt</span><span>Dividenden</span><span>Wert Ende</span></div>`+A.yr.map(v=>`<div class="dxy"><span>${v.y}</span><span>${DXE(v.p,0)}</span><span style="color:var(--sg)">${DXE(v.d,0)}</span><span>${DXE(v.v,0)}</span></div>`).join('');
+ $('#spN').textContent=`Prognose ab heute, ausgehend vom aktuellen Marktwert: Kurse steigen mit ${DXN(SP.g,1)} % pro Jahr, die Dividendenrendite von ${DXP(b.y*100)} (deine erwarteten Dividenden der nächsten 12 Monate) bleibt gleich. ${SP.i>0?'Alle Beträge sind mit '+DXN(SP.i,1)+' % Inflation pro Jahr auf heutige Kaufkraft umgerechnet.':'Ohne Inflation gerechnet.'} Prognosen sagen nichts über die Zukunft.`;
+ const now=new Date(),MN=['Jan','Feb','Mär','Apr','Mai','Jun','Jul','Aug','Sep','Okt','Nov','Dez'],lab=A.val.map((_,t)=>{const m=now.getMonth()+t;return MN[m%12]+' '+(now.getFullYear()+Math.floor(m/12))}),ctx=$('#spCv').getContext('2d'),gr=ctx.createLinearGradient(0,0,0,260);gr.addColorStop(0,'rgba(68,147,154,.35)');gr.addColorStop(1,'rgba(68,147,154,0)');
+ const ds=[{label:re?'Mit Wiederanlage':'Ohne Wiederanlage',data:A.val,borderColor:'#44939a',backgroundColor:gr,fill:true,borderWidth:2.4,order:1},{label:'Ohne Sparrate',data:B.val,borderColor:'#a0a2a8',borderDash:[5,4],borderWidth:1.5,fill:false,order:2},{label:'Eingezahlt',data:A.pd,borderColor:'transparent',backgroundColor:'rgba(58,61,70,.55)',fill:true,order:3}];
  if(SPC){SPC.data.labels=lab;SPC.data.datasets.forEach((x,i)=>Object.assign(x,ds[i]));SPC.update('none');return}
  Chart.defaults.color=getComputedStyle(document.body).color;Chart.defaults.borderColor='rgba(255,255,255,.07)';Chart.defaults.font.size=11;
  SPC=new Chart(ctx,{type:'line',data:{labels:lab,datasets:ds},options:{responsive:true,maintainAspectRatio:false,animation:{duration:300},interaction:{mode:'index',intersect:false},elements:{point:{radius:0,hoverRadius:4},line:{tension:.2}},
   plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>`${c.dataset.label}: ${DXE(c.raw,0)}`}}},
-  scales:{x:{grid:{display:false},ticks:{maxTicksLimit:6,maxRotation:0,callback:function(v){return this.getLabelForValue(v).split(' ')[1]}}},y:{beginAtZero:true,ticks:{maxTicksLimit:5,callback:v=>v>=1000?DXN(v/1000,0)+'k':v}}}}})}
+  scales:{x:{grid:{display:false},ticks:{maxTicksLimit:6,maxRotation:0,callback:function(v){return this.getLabelForValue(v).split(' ')[1]}}},y:{beginAtZero:true,ticks:{maxTicksLimit:5,callback:v=>v>=1e6?DXN(v/1e6,v%1e6?1:0)+' Mio':v>=1000?DXN(v/1000,0)+'k':v}}}}})}
 const atabs=()=>`<div class="stabs"><button class="${tab=='ana'?'on':''}" onclick="tab='ana';render()">Gewichtung</button><button class="${tab=='ovl'?'on':''}" onclick="tab='ovl';render()">ETF-Vergleich</button><button class="${tab=='cash'||tab=='act'?'on':''}" onclick="tab='cash';render()">Kapitalfluss</button><button class="${tab=='dsi'?'on':''}" onclick="tab='dsi';scrollTo(0,0);render()">Div-Sicherheit${neuB('dsi')}</button><button class="${tab=='spp'?'on':''}" onclick="tab='spp';scrollTo(0,0);render()">Sparplan${neuB('spp')}</button></div>`;
 const hc=(v,m)=>{const t=m?Math.min(1,Math.abs(v)/m):0,a=v<0?[224,159,58]:[79,160,164],d=v<0?[120,70,20]:[30,70,90];return 'rgb('+a.map((x,i)=>Math.round(x+(d[i]-x)*t)).join(',')+')'};
 const tcl=(v,m)=>m&&Math.abs(v)/m>.55?'#fff':'#14161a';
