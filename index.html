@@ -1420,7 +1420,7 @@ async function t2div(man){const pw=t2pw(),u=gw();if(!pw||!u){if(man)toast('Für 
   do{const j=await(await fetch(`${u}/t212div?k=${encodeURIComponent(pw)}${since?'&since='+since:''}${cur?'&cursor='+encodeURIComponent(cur):''}`)).json();if(!j.ok){window.T2E=j.error||'Fehler';if(man)toast('Dividenden-Abruf: '+esc(window.T2E),false);return}items.push(...j.items);cur=j.next||''}while(cur&&++n<40);
   const tks=[...new Set(S.tx.filter(t=>t.ticker).map(t=>t.ticker))],mt=k=>{const U=String(k).toUpperCase(),e=tks.find(t=>t.toUpperCase()==U);if(e)return e;let b='';tks.forEach(t=>{if(U.startsWith(t.toUpperCase())&&t.length>b.length)b=t});return b};
   let add=0,have=0,unk=new Set();const pool=S.tx.filter(t=>t.type=='div'&&t.ticker);
-  items.forEach(it=>{const tk=mt(String(it.ticker).split('_')[0]),a=+it.eur||+it.amount||0,d=String(it.paidOn).slice(0,10);if(!(a>0)||!d)return;if(!tk){unk.add(String(it.ticker).split('_')[0]);return}
+  items.forEach(it=>{const tk=mt(String(it.ticker).split('_')[0]),a=+it.eur||+it.amount||0,d=String(it.paidOn).slice(0,10);if(!(a>0)||!d)return;if(!tk){if(pool.some(x=>Math.abs(new Date(x.date)-new Date(d))<=4*864e5&&Math.abs(x.amount-a)<=Math.max(.03,.06*Math.max(x.amount,a)))){have++;return}unk.add(String(it.ticker).split('_')[0]);return}
    const c={ticker:tk,date:d,amount:a};if(pool.some(x=>dvM(x,c))){have++;return}
    const ref=S.tx.find(t=>t.ticker==tk&&t.isin)||S.tx.find(t=>t.ticker==tk)||{},t={xid:'t2:'+(it.ref||tk+d+a),src:'api',date:d,type:'div',ticker:tk,isin:ref.isin||'',name:ref.name||tk,qty:+it.quantity||0,price:0,amount:a,id:Math.random().toString(36).slice(2)};S.tx.push(t);pool.push(t);add++});
   try{localStorage.setItem(tsK,String(Date.now()));if(first)localStorage.setItem(pk('t2dv'),'1')}catch(e){}
