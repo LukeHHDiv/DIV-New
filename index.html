@@ -1468,7 +1468,7 @@ const dvM=(a,b)=>String(a.ticker).toUpperCase()==String(b.ticker).toUpperCase()&
 function apiDrop(ok){const d=ok.filter(t=>t.type=='div');if(!d.length)return;const n=S.tx.length;S.tx=S.tx.filter(x=>!(x.src=='api'&&d.some(c=>dvM(x,c))))}
 function ingestQ(all){unF();const before=new Set(S.tx.map(t=>t.ticker)),have=new Set(S.tx.map(key)),ok=[];all.forEach(t=>{const k=key(t);if(have.has(k))return;have.add(k);t.id=Math.random().toString(36).slice(2);autoMeta(t);ok.push(t)});apiDrop(ok);if(ok.length){S.tx.push(...ok);save();render();newHint(ok,before)}return ok.length}
 async function t2sync(man){const pw=t2pw(),u=gw();if(!pw||!u){if(man)toast('Für die Synchronisation brauchst du die Worker-Adresse und das Passwort (Einstellungen).',false);return}
- if(window.T2D)return;const tsK=pk('t2exts');if(!man){try{if(Date.now()-(+localStorage.getItem(tsK)||0)<24*36e5)return}catch(e){}}
+ if(window.T2D){if(man)toast('Der Abgleich mit Trading 212 läuft schon im Hintergrund, bitte ein bis zwei Minuten warten …',false);return}const tsK=pk('t2exts');if(!man){try{if(Date.now()-(+localStorage.getItem(tsK)||0)<24*36e5)return}catch(e){}}
  window.T2D=1;const sl=ms=>new Promise(r=>setTimeout(r,ms)),SD=window.T2S||[10000,65000],sh=(d,n)=>new Date(new Date(d+'T12:00:00Z').getTime()+n*864e5).toISOString().slice(0,10),call=async q=>await(await fetch(`${u}/t212exp?k=${encodeURIComponent(pw)}&${q}`)).json();
  try{unF();const today=new Date().toISOString().slice(0,10),last=S.tx.reduce((m,t)=>t.date>m?t.date:m,'');let from=last?sh(last,-14):sh(today,-364);const all=[];
   while(from<=today){const to=sh(from,364)<today?sh(from,364):today;if(man)toast(`Trading 212: Bericht ${from} bis ${to} wird erstellt … (kann ein bis zwei Minuten dauern)`,false);
@@ -1480,7 +1480,7 @@ async function t2sync(man){const pw=t2pw(),u=gw();if(!pw||!u){if(man)toast('Für
   if(man||n)toast(`Trading 212: ${n} neue Buchungen übernommen, ${all.length-n} schon vorhanden.`,false)
  }catch(e){window.T2E='Worker nicht erreichbar';if(man)toast('Synchronisation fehlgeschlagen.',false)}finally{window.T2D=0}}
 async function t2div(man){const pw=t2pw(),u=gw();if(!pw||!u){if(man)toast('Für den Abgleich brauchst du die Worker-Adresse und das Passwort (Einstellungen).',false);return}
- if(window.T2D)return;const tsK=pk('t2dvts');if(!man){try{if(Date.now()-(+localStorage.getItem(tsK)||0)<12*36e5)return}catch(e){}}
+ if(window.T2D){if(man)toast('Der Abgleich mit Trading 212 läuft schon im Hintergrund, bitte ein bis zwei Minuten warten …',false);return}const tsK=pk('t2dvts');if(!man){try{if(Date.now()-(+localStorage.getItem(tsK)||0)<12*36e5)return}catch(e){}}
  window.T2D=1;try{unF();const old=S.tx.filter(t=>t.type=='div'&&t.ticker),first=!dxJ(pk('t2dv'),0),last=old.reduce((m,t)=>t.date>m?t.date:m,''),since=first||!last?'':new Date(new Date(last)-12*864e5).toISOString().slice(0,10);
   const items=[];let cur='',n=0;if(man)toast('Rufe Dividenden bei Trading 212 ab … (kann bei der ersten Synchronisation etwa eine Minute dauern)',false);
   do{const j=await(await fetch(`${u}/t212div?k=${encodeURIComponent(pw)}${since?'&since='+since:''}${cur?'&cursor='+encodeURIComponent(cur):''}`)).json();if(!j.ok){window.T2E=j.error||'Fehler';if(man)toast('Dividenden-Abruf: '+esc(window.T2E),false);return}items.push(...j.items);cur=j.next||''}while(cur&&++n<40);
