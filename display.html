@@ -108,6 +108,21 @@ dialog button{background:var(--neon2);color:#03110a;border:0;border-radius:8px;p
 dialog button.sec{background:#1d1f25;color:var(--tx)}
 dialog .hint{color:var(--mu);font-size:13px}
 body.priv .pv{filter:blur(2.4vh)}
+#ss{position:fixed;inset:0;z-index:20;background:#000;opacity:0;pointer-events:none;transition:opacity 1.2s ease;display:flex;align-items:center;justify-content:center;cursor:none}
+#ss.on{opacity:1;pointer-events:auto}
+.ssw{transition:transform 9s ease-in-out,opacity .6s;color:#ecebe6;display:flex;align-items:center;justify-content:center}
+.ssdg{text-align:center}
+.ssdt{font-size:50vh;font-weight:200;letter-spacing:-.03em;line-height:.86;font-family:"SF Pro Display",-apple-system,system-ui,sans-serif}
+.ssc{display:inline-block;margin:0 .02em;animation:ssb 2s ease-in-out infinite;transform:translateY(-.06em)}@keyframes ssb{50%{opacity:.25}}
+.ssdd{font-size:3.6vh;opacity:.5;letter-spacing:.22em;text-transform:uppercase;margin-top:3vh;font-weight:400;text-align:center}
+.ssfl{display:grid;grid-template-columns:auto auto;column-gap:3.2vw;justify-content:center}
+.ssfl .ssdd{grid-column:1/3}
+.ssfg{display:flex;gap:1vw;perspective:80vh}
+.ssfc{position:relative;width:30vh;height:58vh;border-radius:2.4vh;background:linear-gradient(#1d1e23 0 50%,#18191d 50% 100%);display:flex;align-items:center;justify-content:center;font-size:46vh;font-weight:500;line-height:1;overflow:hidden;box-shadow:inset 0 0 0 1px #26282e}
+.ssfc::after{content:'';position:absolute;left:0;right:0;top:calc(50% - .25vh);height:.5vh;background:#000}
+.ssfc.fl span{display:inline-block;animation:flp .55s cubic-bezier(.3,1.4,.5,1)}@keyframes flp{from{transform:rotateX(80deg);opacity:.15}}
+.ssan{width:86vh;height:86vh}
+
 </style>
 </head>
 <body>
@@ -137,18 +152,24 @@ body.priv .pv{filter:blur(2.4vh)}
   <label>Übergang <select id="ctr"><option value="glide">Gleiten</option><option value="slide">Schieben</option><option value="fade">Überblenden</option><option value="zoom">Zoom</option></select></label>
   <label>Tempo <select id="csp"><option value="s">langsam</option><option value="n">normal</option><option value="f">schnell</option></select></label>
   <label><input type="checkbox" id="cpv"> Beträge verbergen (Inkognito)</label></div>
- <p class="hint">Version <span id="cver"></span> · Bedienung: Klick rechts = weiter, links = zurück, Leertaste = Pause, S = Einstellungen. Daten und Kurse (Trading 212, sonst Kursdienst) werden alle 2 Stunden neu geladen (Taste R = sofort).</p>
+ <div class="row"><b>Bildschirmschoner</b>
+  <label>nach <select id="csst"><option value="0">aus</option><option value="1">1 Min.</option><option value="5">5 Min.</option><option value="10">10 Min.</option><option value="20">20 Min.</option><option value="30">30 Min.</option><option value="60">60 Min.</option></select></label>
+  <label>Uhr <select id="cssy"><option value="dig">Digital – schlicht</option><option value="flip">Klappzahlen</option><option value="ana">Analog – minimal</option><option value="vin">Analog – vintage</option></select></label>
+  <label>Helligkeit <input type="range" id="csop" min="15" max="100" step="5" style="width:120px"></label>
+  <button type="button" class="sec" id="cssv" style="padding:5px 10px">Vorschau</button></div>
+ <p class="hint">Version <span id="cver"></span> · Bedienung: Klick rechts = weiter, links = zurück, U = Uhr sofort, Leertaste = Pause, S = Einstellungen. Daten und Kurse (Trading 212, sonst Kursdienst) werden alle 2 Stunden neu geladen (Taste R = sofort).</p>
  <div class="row"><button id="csv">Speichern</button><button class="sec" id="cx">Abbrechen</button><span id="cst" class="hint"></span></div>
 </dialog>
+<div id="ss"></div>
 <script>
 'use strict';
-const VER='2026-11-26.4'; // bei jeder Änderung hochzählen – die Anzeige lädt sich dann selbst neu
+const VER='2026-11-27.1'; // bei jeder Änderung hochzählen – die Anzeige lädt sich dann selbst neu
 const $=s=>document.querySelector(s);
 const LS={get(k,d){try{const v=localStorage.getItem(k);return v==null?d:JSON.parse(v)}catch(e){return d}},raw(k){try{return localStorage.getItem(k)}catch(e){return null}},set(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}}};
 const VIEWS={pf:'Portfolio',mv:'Gewinner & Verlierer heute',dv:'Dividenden',nx:'Nächste Dividenden',ch:'Dividenden pro Monat'};
 
 // ---------- Konfiguration ----------
-let C=Object.assign({w:'',c:'',p:'',views:['pf','mv','dv','nx','ch'],iv:12,dur:{},tr:'glide',sp:'n',priv:false,t2:''},LS.get('dd_cfg',{}));if(!C.dur)C.dur={};if(!C.m5){if(!C.views.includes('mv')){const i=C.views.indexOf('pf');C.views.splice(i<0?0:i+1,0,'mv')}C.m5=1}
+let C=Object.assign({w:'',c:'',p:'',views:['pf','mv','dv','nx','ch'],iv:12,dur:{},tr:'glide',sp:'n',priv:false,t2:'',ss:{t:10,st:'dig',op:.55}},LS.get('dd_cfg',{}));if(!C.dur)C.dur={};if(!C.m5){if(!C.views.includes('mv')){const i=C.views.indexOf('pf');C.views.splice(i<0?0:i+1,0,'mv')}C.m5=1}
 if(!C.w)C.w=LS.raw('divworker')||'';
 if(!C.c)C.c=(LS.raw('sycode')||'').trim();
 if(!C.t2)C.t2=(LS.raw('t2pw')||'').trim();
@@ -339,6 +360,49 @@ function vCH(R){const B=R.bars,W=1840,Hh=290,pad=10,top=30,mx=Math.max(1,...B.ma
  <line x1="${nowX+bw/2}" x2="${nowX+bw/2}" y1="${top-10}" y2="${top+Hh}" stroke="#8d9098" stroke-opacity=".35" stroke-dasharray="4 6"/>
  ${g}</svg>`}
 
+// ---------- Bildschirmschoner (Uhr) ----------
+(function(){
+const SSN={dig:'Digital – schlicht',flip:'Klappzahlen',ana:'Analog – minimal',vin:'Analog – vintage'};
+let on=false,last=Date.now(),drT=0,raf=0,cur='dig';
+const pad=n=>String(n).padStart(2,'0');
+const DAYS=['Sonntag','Montag','Dienstag','Mittwoch','Donnerstag','Freitag','Samstag'],MONS=['Januar','Februar','März','April','Mai','Juni','Juli','August','September','Oktober','November','Dezember'];
+const dstr=d=>`${DAYS[d.getDay()]}, ${d.getDate()}. ${MONS[d.getMonth()]}`;
+function cfg(){return Object.assign({t:0,st:'dig',op:.55},C.ss||{})}
+function face(st){
+ if(st=='dig')return`<div class="ssdg"><div class="ssdt num"><span id="ssH">00</span><span class="ssc">:</span><span id="ssM">00</span></div><div class="ssdd" id="ssD"></div></div>`;
+ if(st=='flip')return`<div class="ssfl"><div class="ssfg"><div class="ssfc" id="ssF0"></div><div class="ssfc" id="ssF1"></div></div><div class="ssfg"><div class="ssfc" id="ssF2"></div><div class="ssfc" id="ssF3"></div></div><div class="ssdd" id="ssD"></div></div>`;
+ let t='';
+ if(st=='ana'){for(let i=0;i<60;i++){const a=i*6,L=i%5?8:22,w=i%5?2:4;t+=`<line x1="0" y1="${-188}" x2="0" y2="${-188+L}" stroke="currentColor" stroke-opacity="${i%5?.35:.85}" stroke-width="${w}" stroke-linecap="round" transform="rotate(${a})"/>`}
+  return`<svg class="ssan" viewBox="-200 -200 400 400"><circle r="198" fill="none" stroke="currentColor" stroke-opacity=".18" stroke-width="2"/>${t}
+  <line id="ssHh" y1="18" y2="-100" stroke="currentColor" stroke-width="10" stroke-linecap="round"/><line id="ssMh" y1="22" y2="-160" stroke="currentColor" stroke-width="6" stroke-linecap="round"/>
+  <line id="ssSh" y1="34" y2="-176" stroke="#cf6a4f" stroke-width="2.2" stroke-linecap="round"/><circle r="8" fill="currentColor"/><circle r="3.5" fill="#cf6a4f"/></svg>`}
+ const R=['XII','I','II','III','IV','V','VI','VII','VIII','IX','X','XI'];
+ for(let i=0;i<60;i++)t+=`<line y1="-176" y2="${i%5?-170:-164}" stroke="#2a2620" stroke-width="${i%5?1.2:2.4}" transform="rotate(${i*6})"/>`;
+ R.forEach((r,i)=>{if(i==6)return;const a=(i*30-90)*Math.PI/180;t+=`<text x="${Math.cos(a)*138}" y="${Math.sin(a)*138+11}" text-anchor="middle" font-size="${r.length>2?26:30}" fill="#2a2620" font-family="Didot,'Bodoni 72',Georgia,serif">${r}</text>`});
+ return`<svg class="ssan vin" viewBox="-200 -200 400 400"><defs><radialGradient id="ssg" cx="45%" cy="40%" r="70%"><stop offset="0" stop-color="#f1ece0"/><stop offset="1" stop-color="#d9d1bd"/></radialGradient></defs>
+  <circle r="197" fill="#2b2924" stroke="#8c8270" stroke-width="3"/><circle r="186" fill="url(#ssg)"/><circle r="180" fill="none" stroke="#2a2620" stroke-width="1"/>${t}
+  <text y="-70" text-anchor="middle" font-size="15" letter-spacing="4" fill="#2a2620" font-family="Didot,'Bodoni 72',Georgia,serif">DIVIDENDE</text>
+  <circle cy="78" r="36" fill="none" stroke="#2a2620" stroke-width="1"/>${Array.from({length:12},(_,i)=>`<line y1="-36" y2="-31" stroke="#2a2620" stroke-width="1.2" transform="translate(0 78) rotate(${i*30})"/>`).join('')}
+  <path id="ssHh" d="M0 18 L-7 -30 L0 -98 L7 -30 Z" fill="#233a5e"/><path id="ssMh" d="M0 22 L-5 -40 L0 -164 L5 -40 Z" fill="#233a5e"/>
+  <g transform="translate(0 78)"><line id="ssSh" y1="6" y2="-32" stroke="#233a5e" stroke-width="1.6"/><circle r="2.5" fill="#233a5e"/></g><circle r="6" fill="#233a5e"/><circle r="2" fill="#d9d1bd"/></svg>`}
+function upd(){if(!on)return;const d=new Date(),s=cur,h=d.getHours(),m=d.getMinutes(),sec=d.getSeconds()+d.getMilliseconds()/1000;
+ const D=document.getElementById('ssD');if(D)D.textContent=dstr(d);
+ if(s=='dig'){document.getElementById('ssH').textContent=pad(h);document.getElementById('ssM').textContent=pad(m)}
+ else if(s=='flip'){const v=pad(h)+pad(m);for(let i=0;i<4;i++){const c=document.getElementById('ssF'+i);if(c.dataset.v!==v[i]){if(c.dataset.v)c.classList.remove('fl'),void c.offsetWidth,c.classList.add('fl');c.dataset.v=v[i];c.innerHTML=`<span>${v[i]}</span>`}}}
+ else{const rot=(id,a)=>{const e=document.getElementById(id);if(e)e.setAttribute('transform',`rotate(${a})`)};
+  rot('ssHh',(h%12+m/60)*30);rot('ssMh',(m+sec/60)*6);rot('ssSh',(s=='ana'?sec:Math.floor(sec))*6)}
+ raf=requestAnimationFrame(upd)}
+function drift(){const w=document.querySelector('#ss .ssw');if(!w)return;w.style.transform=`translate(${(Math.random()*2-1)*4}vw,${(Math.random()*2-1)*5}vh)`}
+function show(st,op){const c=cfg();cur=st||c.st;const o=document.getElementById('ss');o.innerHTML=`<div class="ssw" style="opacity:${op||c.op}">${face(cur)}</div>`;
+ on=true;o.classList.add('on');document.body.classList.add('ssv');upd();
+ clearInterval(drT);drT=setInterval(drift,60000)}
+function hide(){if(!on)return;on=false;cancelAnimationFrame(raf);clearInterval(drT);const o=document.getElementById('ss');o.classList.remove('on');document.body.classList.remove('ssv');setTimeout(()=>{if(!on)o.innerHTML=''},1300)}
+function act(){last=Date.now();if(on)hide()}
+['mousemove','mousedown','keydown','touchstart','wheel'].forEach(e=>document.addEventListener(e,ev=>{if(on){ev.stopPropagation();ev.preventDefault()}act()},true));
+setInterval(()=>{const c=cfg();if(!on&&c.t>0&&!document.getElementById('cfg').open&&Date.now()-last>c.t*60000)show()},5000);
+window.SS={show,hide,on:()=>on,names:SSN,
+ preview(st,op){last=Date.now();setTimeout(()=>show(st,op),250)}};
+})();
 const RENDER={pf:vPF,mv:vMV,dv:vDV,nx:vNX,ch:vCH};
 
 // ---------- Ablauf ----------
@@ -370,17 +434,18 @@ setInterval(()=>{if(D){R=calc()}},60*60*1000);
 // ---------- Bedienung ----------
 let mvT=0;document.addEventListener('mousemove',()=>{document.body.classList.add('mv');clearTimeout(mvT);mvT=setTimeout(()=>document.body.classList.remove('mv'),2500)});
 $('#st').addEventListener('click',e=>{if(!R)return openCfg();show(idx+(e.clientX<innerWidth/3?-1:1))});
-document.addEventListener('keydown',e=>{if($('#cfg').open)return;if(e.key=='ArrowRight')show(idx+1);else if(e.key=='ArrowLeft')show(idx-1);else if(e.key==' '){paused=!paused;document.body.classList.toggle('paused',paused);t0=performance.now()-(paused?0:0);e.preventDefault()}else if(e.key=='s'||e.key=='S'){e.preventDefault();openCfg()}else if(e.key=='r'||e.key=='R'){upd();refresh(true)}});
+document.addEventListener('keydown',e=>{if($('#cfg').open)return;if(e.key=='ArrowRight')show(idx+1);else if(e.key=='ArrowLeft')show(idx-1);else if(e.key==' '){paused=!paused;document.body.classList.toggle('paused',paused);t0=performance.now()-(paused?0:0);e.preventDefault()}else if(e.key=='s'||e.key=='S'){e.preventDefault();openCfg()}else if(e.key=='r'||e.key=='R'){upd();refresh(true)}else if(e.key=='u'||e.key=='U')SS.preview()});
 $('#gear').addEventListener('click',e=>{e.stopPropagation();openCfg()});
 function openCfg(){$('#cw').value=C.w;$('#cc').value=C.c;$('#ct2').value=C.t2||'';$('#ct2s').textContent=T2.msg?(T2.ok?'✓ ':'⚠ ')+T2.msg:(C.t2?'':'Leer = Trading 212 aus');$('#ci').value=C.iv;$('#cpv').checked=!!C.priv;
  $('#cp').innerHTML=((D&&D.names)||[C.p||'']).map(n=>`<option ${n==(D&&D.p)?'selected':''}>${esc(n)}</option>`).join('');
- document.querySelectorAll('#cfg input[type=checkbox][value]').forEach(b=>b.checked=(C.views||[]).includes(b.value));document.querySelectorAll('#cfg input[data-d]').forEach(b=>b.value=C.dur[b.dataset.d]||C.iv);$('#ctr').value=C.tr||'glide';$('#csp').value=C.sp||'n';$('#cst').textContent='';$('#cver').textContent=VER;$('#cfg').showModal()}
+ document.querySelectorAll('#cfg input[type=checkbox][value]').forEach(b=>b.checked=(C.views||[]).includes(b.value));document.querySelectorAll('#cfg input[data-d]').forEach(b=>b.value=C.dur[b.dataset.d]||C.iv);$('#ctr').value=C.tr||'glide';$('#csp').value=C.sp||'n';$('#cst').textContent='';$('#cver').textContent=VER;const z=Object.assign({t:10,st:'dig',op:.55},C.ss||{});$('#csst').value=z.t;$('#cssy').value=z.st;$('#csop').value=Math.round(z.op*100);$('#cfg').showModal()}
 $('#cx').onclick=()=>$('#cfg').close();
+$('#cssv').onclick=e=>{e.preventDefault();$('#cfg').close();SS.preview($('#cssy').value,+$('#csop').value/100)};
 $('#ct2t').onclick=async e=>{e.preventDefault();const w=normW($('#cw').value),k=$('#ct2').value.trim(),o=$('#ct2s');if(!k){o.textContent='Leer = Trading 212 aus';return}if(!w){o.textContent='Bitte zuerst die Worker-Adresse eintragen.';return}o.textContent='Prüfe …';
  try{const j=await(await fetch(`${w}/t212?k=${encodeURIComponent(k)}`,{cache:'no-store'})).json();o.textContent=j.ok?`✓ Verbunden · ${j.n} Positionen, davon ${j.withIsin||0} mit ISIN`:'⚠ '+(j.error||'unbekannter Fehler')}catch(x){o.textContent='⚠ Worker nicht erreichbar'}};
 $('#call').onclick=e=>{e.preventDefault();const v=Math.max(3,+$('#ci').value||12);document.querySelectorAll('#cfg input[data-d]').forEach(b=>b.value=v)};
 $('#csv').onclick=async()=>{const nw=normW($('#cw').value),nc=$('#cc').value.trim(),np=$('#cp').value,nt=$('#ct2').value.trim();const ch=nw!=C.w||nc!=C.c||np!=C.p,cht=nt!=(C.t2||'');C.t2=nt;
- C.w=nw;C.c=nc;C.p=np;C.iv=Math.max(4,+$('#ci').value||12);C.priv=$('#cpv').checked;C.tr=$('#ctr').value;C.sp=$('#csp').value;C.dur={};document.querySelectorAll('#cfg input[data-d]').forEach(b=>{const v=+b.value;if(v>=3)C.dur[b.dataset.d]=v});C.views=[...document.querySelectorAll('#cfg input[type=checkbox][value]:checked')].map(b=>b.value);
+ C.w=nw;C.c=nc;C.p=np;C.iv=Math.max(4,+$('#ci').value||12);C.priv=$('#cpv').checked;C.ss={t:+$('#csst').value,st:$('#cssy').value,op:+$('#csop').value/100};C.tr=$('#ctr').value;C.sp=$('#csp').value;C.dur={};document.querySelectorAll('#cfg input[data-d]').forEach(b=>{const v=+b.value;if(v>=3)C.dur[b.dataset.d]=v});C.views=[...document.querySelectorAll('#cfg input[type=checkbox][value]:checked')].map(b=>b.value);
  LS.set('dd_cfg',C);build();if(ch){$('#cst').textContent='Lade Daten …';D=null;await refresh(true);$('#cst').textContent=D?'Gespeichert.':'Fehler: '+syncErr;if(D)setTimeout(()=>$('#cfg').close(),600)}else{$('#cfg').close();if(cht&&D){await quotes();R=calc()}if(R)show(idx)}};
 
 // ---------- Start ----------
