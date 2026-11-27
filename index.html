@@ -562,10 +562,13 @@ async function fetchI(){const u=gw();if(!u||navigator.onLine===false)return;cons
  if(tab=='dash'&&opt.dtab=='w'&&opt.per=='0'&&!$('#dg').open&&!($('#fsd')&&$('#fsd').open))render()}
 let SNP=null;
 async function fetchS(){const u=gw(),pw=t2pw(),dn={'0':3,'7':8,'30':35}[opt.per||'max'];if(!u||!pw||!dn||navigator.onLine===false)return;if(SNP&&SNP.days>=dn&&Date.now()-SNP.ts<120000)return;
- try{const j=await(await fetch(`${u}/snaps?k=${encodeURIComponent(pw)}&days=${dn}`)).json();SNP={ts:Date.now(),days:dn,ok:!!j.ok,d:j.ok?j.days:{},err:j.ok?'':(j.error||'Fehler')}}catch(e){SNP={ts:Date.now(),days:dn,ok:false,d:{},err:'Worker nicht erreichbar'}}
+ try{const j=await(await fetch(`${u}/snaps?k=${encodeURIComponent(pw)}&days=${dn}`)).json();SNP={ts:Date.now(),days:dn,ok:!!j.ok,d:j.ok?j.days:{},st:j.ok?j.st:null,err:j.ok?'':(j.error||'Fehler')}}catch(e){SNP={ts:Date.now(),days:dn,ok:false,d:{},err:'Worker nicht erreichbar'}}
  if(tab=='dash'&&opt.dtab=='w'&&['0','7','30'].includes(opt.per)&&!$('#dg').open&&!($('#fsd')&&$('#fsd').open)&&snapSeries())render()}
 function srcNote(D,mon){const sn=(()=>{if(!t2pw())return'';if(!SNP)return'';if(!SNP.ok)return' · Aufzeichnung: '+SNP.err;const ks=Object.keys(SNP.d).sort();if(!ks.length)return' · Aufzeichnung: noch keine Punkte (Zeitplan im Worker eingetragen?)';const n=ks.reduce((s,k)=>s+SNP.d[k].pts.length,0);return' · Aufzeichnung seit '+ks[0].slice(8,10)+'.'+ks[0].slice(5,7)+'. ('+n+' Punkte'+(['0','7','30'].includes(opt.per||'max')?'':', gilt bis 1M')+')'})();
- return(mon?'Quelle: Monatswerte aus deinen Buchungen, Tageskurse fehlen':D&&D.snap?'Quelle: eigene Aufzeichnung (Trading 212)':D&&D.intra?'Quelle: Yahoo, 5-Minuten-Kurse':'Quelle: Yahoo, Tageskurse nachgerechnet')+sn}
+ const stx=(()=>{const s=SNP&&SNP.st;if(!s)return'';const d=new Date(s.t),pad=x=>String(x).padStart(2,'0'),tm=pad(d.getHours())+':'+pad(d.getMinutes()),n=new Date(),wk=n.getDay()%6!=0&&n.getHours()>=8&&n.getHours()<22;
+ if(!s.ok)return' · Letzte Aufzeichnung ('+tm+') fehlgeschlagen: '+(s.status?'Trading 212 antwortet mit '+s.status+(s.status==429?' (zu viele Anfragen)':s.status==401||s.status==403?' (Schlüssel oder Berechtigung Portfolio prüfen)':''):s.err||'unbekannt');
+ if(wk&&Date.now()-s.t>45*60000)return' · Zeitplan im Worker läuft nicht (letzter Lauf '+pad(d.getDate())+'.'+pad(d.getMonth()+1)+'. '+tm+')';return''})();
+ return(mon?'Quelle: Monatswerte aus deinen Buchungen, Tageskurse fehlen':D&&D.snap?'Quelle: eigene Aufzeichnung (Trading 212)':D&&D.intra?'Quelle: Yahoo, 5-Minuten-Kurse':'Quelle: Yahoo, Tageskurse nachgerechnet')+sn+stx}
 function snapSeries(){const per=opt.per||'max';if(!SNP||!SNP.ok||!['0','7','30'].includes(per))return null;let pts=[];Object.keys(SNP.d).sort().forEach(d=>SNP.d[d].pts.forEach(p=>pts.push(p)));pts.sort((a,b)=>a[0]-b[0]);if(pts.length<3)return null;
  const last=pts[pts.length-1][0];
  if(per=='0'){const c0=new Date(last*1000);c0.setHours(0,0,0,0);const cut=c0.getTime()/1000;pts=pts.filter(p=>p[0]>=cut);if(pts.length<12)return null}
